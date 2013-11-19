@@ -132,6 +132,11 @@ static int connect_pppoatm(void)
 {
 	int fd;
 	struct atm_qos qos;
+        int syserr;
+
+	syserr = system ("/sbin/modprobe -q pppoatm");
+        if(syserr != 0)
+          fatal("modprobe failed");
 
 	if (!device_got_set)
 		no_device_given_pppoatm();
@@ -166,6 +171,38 @@ static void disconnect_pppoatm(void)
 	close(pppoa_fd);
 }
 
+static void send_config_pppoa(int mtu,
+			      u_int32_t asyncmap,
+			      int pcomp,
+			      int accomp)
+{
+	int sock;
+	struct ifreq ifr;
+#if 0
+	if (mtu > pppoatm_max_mtu)
+		error("Couldn't increase MTU to %d", mtu);
+#endif
+	sock = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sock < 0)
+		fatal("Couldn't create IP socket: %m");
+	strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+	ifr.ifr_mtu = mtu;
+	if (ioctl(sock, SIOCSIFMTU, (caddr_t) &ifr) < 0)
+		fatal("ioctl(SIOCSIFMTU): %m");
+	(void) close (sock);
+}
+
+static void recv_config_pppoa(int mru,
+			      u_int32_t asyncmap,
+			      int pcomp,
+			      int accomp)
+{
+#if 0
+	if (mru > pppoatm_max_mru)
+		error("Couldn't increase MRU to %d", mru);
+#endif
+}
+
 void plugin_init(void)
 {
 #if defined(__linux__)
@@ -187,8 +224,8 @@ struct channel pppoa_channel = {
     disconnect: &disconnect_pppoatm,
     establish_ppp: &generic_establish_ppp,
     disestablish_ppp: &generic_disestablish_ppp,
-    send_config: NULL,
-    recv_config: NULL,
+    send_config: &send_config_pppoa,
+    recv_config: &recv_config_pppoa,
     close: NULL,
     cleanup: NULL
 };
