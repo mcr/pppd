@@ -1,5 +1,5 @@
 /*
- * $Id: dict.c,v 1.1 2004/11/14 07:26:26 paulus Exp $
+ * $Id: dict.c,v 1.1.2.6 2009/09/25 08:53:18 btrojanowski Exp $
  *
  * Copyright (C) 2002 Roaring Penguin Software Inc.
  *
@@ -447,4 +447,29 @@ VENDOR_DICT * rc_dict_getvendor (int id)
 	dict = dict->next;
     }
     return NULL;
+}
+
+void rc_dict_free()
+{
+ VENDOR_DICT *dict;
+ DICT_ATTR *attr;
+ DICT_VALUE *val;
+
+ while(vendor_dictionaries) {
+  dict = vendor_dictionaries->next;
+  free(vendor_dictionaries);
+  vendor_dictionaries = dict;
+ }
+
+ while(dictionary_attributes) {
+  attr = dictionary_attributes->next;
+  free(dictionary_attributes);
+  dictionary_attributes = attr;
+ }
+
+ while(dictionary_values) {
+  val = dictionary_values->next;
+  free(dictionary_values);
+  dictionary_values = val;
+ }
 }
