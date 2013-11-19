@@ -49,6 +49,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <unistd.h>
+#include <syslog.h>
 
 #include "pppd.h"
 #include "fsm.h"
@@ -214,7 +218,7 @@ static int lcp_echos_pending = 0;	/* Number of outstanding echo msgs */
 static int lcp_echo_number   = 0;	/* ID number of next echo frame */
 static int lcp_echo_timer_running = 0;  /* set if a timer is running */
 
-static u_char nak_buffer[PPP_MRU];	/* where we construct a nak packet */
+static u_char nak_buffer[JUMBO_PPP_MRU];	/* where we construct a nak packet */
 
 /*
  * Callbacks for fsm code.  (CI = Configuration Information)
@@ -482,11 +486,11 @@ lcp_lowerup(unit)
      * but accept A/C and protocol compressed packets
      * if we are going to ask for A/C and protocol compression.
      */
-    if (ppp_send_config(unit, PPP_MRU, 0xffffffff, 0, 0) < 0
-	|| ppp_recv_config(unit, PPP_MRU, (lax_recv? 0: 0xffffffff),
+    if (ppp_send_config(unit, JUMBO_PPP_MRU, 0xffffffff, 0, 0) < 0
+	|| ppp_recv_config(unit, JUMBO_PPP_MRU, (lax_recv? 0: 0xffffffff),
 			   wo->neg_pcompression, wo->neg_accompression) < 0)
 	    return;
-    peer_mru[unit] = PPP_MRU;
+    peer_mru[unit] = JUMBO_PPP_MRU;
 
     if (listen_time != 0) {
 	f->flags |= DELAYED_UP;
@@ -703,7 +707,7 @@ lcp_resetci(f)
     }
     if (noendpoint)
 	ao->neg_endpoint = 0;
-    peer_mru[f->unit] = PPP_MRU;
+    peer_mru[f->unit] = JUMBO_PPP_MRU;
     auth_reset(f->unit);
 }
 
@@ -1109,8 +1113,26 @@ lcp_nakci(f, p, len, treat_as_reject)
      */
     if (go->neg_mru && go->mru != DEFMRU) {
 	NAKCISHORT(CI_MRU, neg_mru,
-		   if (cishort <= wo->mru || cishort <= DEFMRU)
-		       try.mru = cishort;
+		   if (tn->count && cishort == tn->mru && cishort <= DEFMRU) {
+		       // we are asked to try again
+		       tn->count ++;
+		       if (tn->count > LCP_MAX_SAME_NAKCI) {
+		           /**/if (ho->neg_mru && ho->mru > MINMRU && tn->mru > ho->mru) {
+			       // we can lower our MRU to the client's MRU
+			       try.mru = ho->mru;
+			       memset(tn, 0, sizeof(*tn));
+			   } else /**/{
+			       // use the MRU that client insists on
+			       wo->mru = ho->mru;
+			       f->state = STARTING;
+			       fsm_lowerup(f);
+			       return 0;
+			   }
+		       }
+		   } else if (cishort <= wo->mru || cishort <= DEFMRU) {
+		       tn->mru = try.mru = cishort;
+		       tn->count = 1;
+		   }
 		   );
     }
 
@@ -1960,12 +1982,18 @@ lcp_up(f)
      * the interface MTU is set to the lowest of that, the
      * MTU we want to use, and our link MRU.
      */
-    mtu = ho->neg_mru? ho->mru: PPP_MRU;
-    mru = go->neg_mru? MAX(wo->mru, go->mru): PPP_MRU;
+    mtu = ho->neg_mru? ho->mru: JUMBO_PPP_MRU;
+    mru = go->neg_mru? MAX(wo->mru, go->mru): JUMBO_PPP_MRU;
+
+    if (ao->neg_mru && mtu > ao->mru)
+        mtu = ao->mru;
+    if (mtu > mru)
+        mtu = mru;
+
 #ifdef HAVE_MULTILINK
     if (!(multilink && go->neg_mrru && ho->neg_mrru))
 #endif /* HAVE_MULTILINK */
-	netif_set_mtu(f->unit, MIN(MIN(mtu, mru), ao->mru));
+	netif_set_mtu(f->unit, mtu);
     ppp_send_config(f->unit, mtu,
 		    (ho->neg_asyncmap? ho->asyncmap: 0xffffffff),
 		    ho->neg_pcompression, ho->neg_accompression);
@@ -1997,11 +2025,11 @@ lcp_down(f)
 
     link_down(f->unit);
 
-    ppp_send_config(f->unit, PPP_MRU, 0xffffffff, 0, 0);
-    ppp_recv_config(f->unit, PPP_MRU,
+    ppp_send_config(f->unit, JUMBO_PPP_MRU, 0xffffffff, 0, 0);
+    ppp_recv_config(f->unit, JUMBO_PPP_MRU,
 		    (go->neg_asyncmap? go->asyncmap: 0xffffffff),
 		    go->neg_pcompression, go->neg_accompression);
-    peer_mru[f->unit] = PPP_MRU;
+    peer_mru[f->unit] = JUMBO_PPP_MRU;
 }
 
 
