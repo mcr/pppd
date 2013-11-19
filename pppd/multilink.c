@@ -128,7 +128,7 @@ mp_join_bundle()
 		/* not doing multilink */
 		if (go->neg_mrru)
 			notice("oops, multilink negotiated only for receive");
-		mtu = ho->neg_mru? ho->mru: PPP_MRU;
+		mtu = ho->neg_mru? ho->mru: JUMBO_PPP_MRU;
 		if (mtu > ao->mru)
 			mtu = ao->mru;
 		if (demand) {

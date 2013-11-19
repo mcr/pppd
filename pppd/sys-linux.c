@@ -1124,7 +1124,7 @@ int read_packet (unsigned char *buf)
 {
     int len, nr;
 
-    len = PPP_MRU + PPP_HDRLEN;
+    len = JUMBO_PPP_MRU + PPP_HDRLEN;
     if (new_style_driver) {
 	*buf++ = PPP_ALLSTATIONS;
 	*buf++ = PPP_UI;

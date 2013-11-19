@@ -1,4 +1,4 @@
-/*	$Id: ppp_defs.h,v 1.11 2002/12/06 09:49:15 paulus Exp $	*/
+/*	$Id: ppp_defs.h,v 1.1.1.1.6.7 2009/09/25 08:53:18 btrojanowski Exp $ */
 
 /*
  * ppp_defs.h - PPP definitions.
@@ -56,6 +56,7 @@
 #define PPP_HDRLEN	4	/* octets for standard ppp header */
 #define PPP_FCSLEN	2	/* octets for FCS */
 #define PPP_MRU		1500	/* default MRU = max length of info field */
+#define JUMBO_PPP_MRU	9000
 
 #define PPP_ADDRESS(p)	(((__u8 *)(p))[0])
 #define PPP_CONTROL(p)	(((__u8 *)(p))[1])

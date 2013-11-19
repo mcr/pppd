@@ -39,7 +39,7 @@
  * AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
- * $Id: lcp.h,v 1.20 2004/11/14 22:53:42 carlsonj Exp $
+ * $Id: lcp.h,v 1.1.1.1.6.7 2009/09/25 08:53:18 btrojanowski Exp $
  */
 
 /*
@@ -118,7 +118,7 @@ extern lcp_options lcp_gotoptions[];
 extern lcp_options lcp_allowoptions[];
 extern lcp_options lcp_hisoptions[];
 
-#define DEFMRU	1500		/* Try for this */
+#define DEFMRU	9000		/* Try for this */
 #define MINMRU	128		/* No MRUs below this */
 #define MAXMRU	16384		/* Normally limit MRU to this */
 

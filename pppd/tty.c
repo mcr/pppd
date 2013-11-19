@@ -68,7 +68,7 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define RCSID	"$Id: tty.c,v 1.27 2008/07/01 12:27:56 paulus Exp $"
+#define RCSID	"$Id: tty.c,v 1.1.1.1.6.7 2009/09/25 08:53:18 btrojanowski Exp $"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -1074,7 +1074,7 @@ charshunt(ifd, ofd, record_file)
 	if (max_level < 100)
 	    max_level = 100;
     } else
-	max_level = PPP_MRU + PPP_HDRLEN + 1;
+	max_level = JUMBO_PPP_MRU + PPP_HDRLEN + 1;
 
     nfds = (ofd > pty_master? ofd: pty_master) + 1;
     if (recordf != NULL) {
@@ -1128,7 +1128,7 @@ charshunt(ifd, ofd, record_file)
 	    ilevel = olevel = 0;
 	if (FD_ISSET(ifd, &ready)) {
 	    ibufp = inpacket_buf;
-	    nibuf = read(ifd, ibufp, PPP_MRU + PPP_HDRLEN);
+	    nibuf = read(ifd, ibufp, JUMBO_PPP_MRU + PPP_HDRLEN);
 	    if (nibuf < 0 && errno == EIO)
 		nibuf = 0;
 	    if (nibuf < 0) {
@@ -1152,7 +1152,7 @@ charshunt(ifd, ofd, record_file)
 	}
 	if (FD_ISSET(pty_master, &ready)) {
 	    obufp = outpacket_buf;
-	    nobuf = read(pty_master, obufp, PPP_MRU + PPP_HDRLEN);
+	    nobuf = read(pty_master, obufp, JUMBO_PPP_MRU + PPP_HDRLEN);
 	    if (nobuf < 0 && errno == EIO)
 		nobuf = 0;
 	    if (nobuf < 0) {

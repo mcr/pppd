@@ -28,7 +28,7 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define RCSID	"$Id: demand.c,v 1.20 2005/08/25 12:14:18 paulus Exp $"
+#define RCSID	"$Id: demand.c,v 1.1.1.1.6.7 2009/09/25 08:53:18 btrojanowski Exp $"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,8 +82,8 @@ demand_conf()
     struct protent *protp;
 
 /*    framemax = lcp_allowoptions[0].mru;
-    if (framemax < PPP_MRU) */
-	framemax = PPP_MRU;
+    if (framemax < JUMBO_PPP_MRU) */
+	framemax = JUMBO_PPP_MRU;
     framemax += PPP_HDRLEN + PPP_FCSLEN;
     frame = malloc(framemax);
     if (frame == NULL)
@@ -94,9 +94,9 @@ demand_conf()
     flush_flag = 0;
     fcs = PPP_INITFCS;
 
-    netif_set_mtu(0, MIN(lcp_allowoptions[0].mru, PPP_MRU));
-    if (ppp_send_config(0, PPP_MRU, (u_int32_t) 0, 0, 0) < 0
-	|| ppp_recv_config(0, PPP_MRU, (u_int32_t) 0, 0, 0) < 0)
+    netif_set_mtu(0, MIN(lcp_allowoptions[0].mru, JUMBO_PPP_MRU));
+    if (ppp_send_config(0, JUMBO_PPP_MRU, (u_int32_t) 0, 0, 0) < 0
+	|| ppp_recv_config(0, JUMBO_PPP_MRU, (u_int32_t) 0, 0, 0) < 0)
 	    fatal("Couldn't set up demand-dialled PPP interface: %m");
 
 #ifdef PPP_FILTER

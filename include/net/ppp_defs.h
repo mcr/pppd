@@ -1,4 +1,4 @@
-/*	$Id: ppp_defs.h,v 1.17 2002/12/06 09:49:15 paulus Exp $	*/
+/*	$Id: ppp_defs.h,v 1.1.1.1.6.7 2009/09/25 08:53:18 btrojanowski Exp $ */
 
 /*
  * ppp_defs.h - PPP definitions.
@@ -56,6 +56,7 @@
 #define PPP_MAXMTU	65535 - (PPP_HDRLEN + PPP_FCSLEN)
 #define PPP_MINMTU	64
 #define PPP_MRU		1500	/* default MRU = max length of info field */
+#define JUMBO_PPP_MRU	9000
 #define PPP_MAXMRU	65000	/* Largest MRU we allow */
 #define PPP_MINMRU	128
 

@@ -32,7 +32,7 @@
  * AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
- * $Id: ppp_comp.c,v 1.14 2002/12/06 09:49:15 paulus Exp $
+ * $Id: ppp_comp.c,v 1.1.1.1.6.7 2009/09/25 08:53:18 btrojanowski Exp $
  */
 
 /*
@@ -200,7 +200,7 @@ MOD_OPEN(ppp_comp_open)
 	    OPEN_ERROR(ENOSR);
 	bzero((caddr_t)cp, sizeof(comp_state_t));
 	WR(q)->q_ptr = q->q_ptr = (caddr_t) cp;
-	cp->mru = PPP_MRU;
+	cp->mru = JUMBO_PPP_MRU;
 	cp->mtu = PPP_MTU;
 	cp->xstate = NULL;
 	cp->rstate = NULL;

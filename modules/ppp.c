@@ -32,7 +32,7 @@
  * AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
- * $Id: ppp.c,v 1.26 2002/12/06 09:49:15 paulus Exp $
+ * $Id: ppp.c,v 1.1.1.1.6.7 2009/09/25 08:53:18 btrojanowski Exp $
  */
 
 /*
@@ -807,8 +807,8 @@ pppuwput(q, mp)
 	    n = *(int *)mp->b_cont->b_rptr;
 	    if (n <= 0 || n > PPP_MAXMRU)
 		break;
-	    if (n < PPP_MRU)
-		n = PPP_MRU;
+	    if (n < JUMBO_PPP_MRU)
+		n = JUMBO_PPP_MRU;
 	    us->mru = n;
 	    if (us->lowerq)
 		putctl4(us->lowerq, M_CTL, PPPCTL_MRU, n);
@@ -1615,7 +1615,7 @@ new_ppa(q, mp)
     us->npmode = NPMODE_PASS;
 
     us->mtu = PPP_MTU;
-    us->mru = PPP_MRU;
+    us->mru = JUMBO_PPP_MRU;
 
 #ifdef SOL2
     /*

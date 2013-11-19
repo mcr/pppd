@@ -56,7 +56,7 @@
  * OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS,
  * OR MODIFICATIONS.
  *
- * $Id: ppp_ahdlc.c,v 1.18 2002/12/06 09:49:15 paulus Exp $
+ * $Id: ppp_ahdlc.c,v 1.1.1.1.6.7 2009/09/25 08:53:18 btrojanowski Exp $
  */
 
 /*
@@ -281,7 +281,7 @@ MOD_OPEN(ahdlc_open)
 
     state->xaccm[0] = ~0;	    /* escape 0x00 through 0x1f */
     state->xaccm[3] = 0x60000000;   /* escape 0x7d and 0x7e */
-    state->mru	    = PPP_MRU;	    /* default of 1500 bytes */
+    state->mru	    = JUMBO_PPP_MRU;/* default of 9000 bytes */
 #if defined(SOL2)
     state->flag_time = drv_usectohz(FLAG_TIME);
 #endif /* SOL2 */
@@ -808,7 +808,7 @@ ahdlc_decode(q, mp)
 	 * we add an extra 32-bytes for a fudge factor
 	 */ 
 	if (state->rx_buf == 0) {
-	    state->rx_buf_size  = (state->mru < PPP_MRU ? PPP_MRU : state->mru);
+	    state->rx_buf_size  = (state->mru < JUMBO_PPP_MRU ? JUMBO_PPP_MRU : state->mru);
 	    state->rx_buf_size += (sizeof(u_int32_t) << 3);
 	    state->rx_buf = allocb(state->rx_buf_size, BPRI_MED);
 

@@ -187,8 +187,8 @@ static sigjmp_buf sigjmp;
 char **script_env;		/* Env. variable values for scripts */
 int s_env_nalloc;		/* # words avail at script_env */
 
-u_char outpacket_buf[PPP_MRU+PPP_HDRLEN]; /* buffer for outgoing packet */
-u_char inpacket_buf[PPP_MRU+PPP_HDRLEN]; /* buffer for incoming packet */
+u_char outpacket_buf[JUMBO_PPP_MRU+PPP_HDRLEN]; /* buffer for outgoing packet */
+u_char inpacket_buf[JUMBO_PPP_MRU+PPP_HDRLEN]; /* buffer for incoming packet */
 
 static int n_children;		/* # child processes still running */
 static int got_sigchld;		/* set if we have received a SIGCHLD */
