@@ -25,7 +25,9 @@ CHAPMS=y
 # Uncomment the next line to include support for MPPE.
 MPPE=y
 # Uncomment the next lint to include support for traffic limiting
-MAXOCTETS=y
+# MAXOCTETS=y
+
+LONGCOUNTER=y
 
 ifdef CHAPMS
 CFLAGS += -DCHAPMS=1
@@ -36,6 +38,11 @@ endif
 ifdef MAXOCTETS
 CFLAGS += -DMAXOCTETS=1
 endif
+ifdef LONGCOUNTER
+CFLAGS += -DLONGCOUNTER=1
+endif
+
+
 
 all: $(RADIUSPLUGIN)
 
@@ -57,7 +64,7 @@ radrealms.so: radrealms.o
 	$(CC) -o radrealms.so -shared radrealms.o
 
 CLIENTOBJS = avpair.o buildreq.o config.o dict.o ip_util.o \
-	clientid.o sendserver.o lock.o util.o md5.o
+	clientid.o sendserver.o lock.o util.o md5.o log.o
 libradiusclient.a: $(CLIENTOBJS)
 	$(AR) rv $@ $?
 

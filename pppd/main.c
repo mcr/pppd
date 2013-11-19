@@ -1231,7 +1231,15 @@ reset_link_stats(u)
     int u;
 {
     if (!get_ppp_stats(u, &old_link_stats))
-	return;
+        return;
+
+#ifdef LONGCOUNTER
+    extended_link_stats.prev_bytes_in = 0;
+    extended_link_stats.prev_bytes_out = 0;
+    extended_link_stats.long_bytes_in = 0;
+    extended_link_stats.long_bytes_out = 0;
+#endif
+
     gettimeofday(&start_time, NULL);
 }
 
@@ -1255,6 +1263,33 @@ update_link_stats(u)
     link_stats.bytes_out -= old_link_stats.bytes_out;
     link_stats.pkts_in   -= old_link_stats.pkts_in;
     link_stats.pkts_out  -= old_link_stats.pkts_out;
+
+#ifdef LONGCOUNTER
+    /*
+    * Detect rollover
+    * If value rolled over, add this bytes to "long" counter, then "previous" counter value to zero
+    * It will count also data in next step , which accounted after "rollover"
+    * All this can be done many different ways, but this one - simpliest
+    */
+
+    if (link_stats.bytes_in < extended_link_stats.prev_bytes_in) {
+	extended_link_stats.long_bytes_in += (unsigned long long) (UINT32_MAX - extended_link_stats.prev_bytes_in);
+	extended_link_stats.prev_bytes_in = 0;
+    }
+
+    if (link_stats.bytes_out < extended_link_stats.prev_bytes_out) {
+	extended_link_stats.long_bytes_out += (unsigned long long) (UINT32_MAX - extended_link_stats.prev_bytes_out);
+	extended_link_stats.prev_bytes_out = 0;
+    }
+
+    /* Add to "long" counter diff of accounted data */
+    extended_link_stats.long_bytes_in += (unsigned long long) (link_stats.bytes_in - extended_link_stats.prev_bytes_in);
+    extended_link_stats.long_bytes_out += (unsigned long long) (link_stats.bytes_out - extended_link_stats.prev_bytes_out);
+
+    extended_link_stats.prev_bytes_in = link_stats.bytes_in;
+    extended_link_stats.prev_bytes_out = link_stats.bytes_out;
+
+#endif
 
     slprintf(numbuf, sizeof(numbuf), "%u", link_connect_time);
     script_setenv("CONNECT_TIME", numbuf, 0);

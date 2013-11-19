@@ -1,4 +1,4 @@
-/*	$Id: if_ppp.h,v 1.23 2002/12/06 09:49:15 paulus Exp $	*/
+/*	$Id: if_ppp.h,v 1.1.1.1.6.6 2009/09/25 08:53:18 btrojanowski Exp $ */
 
 /*
  * if_ppp.h - Point-to-Point Protocol definitions.
@@ -130,6 +130,10 @@ struct ifpppcstatsreq {
 	struct ppp_comp_stats stats;
 };
 
+struct bandwidth_limits {
+	int upstream_limit, downstream_limit;
+};
+
 #define ifr__name       b.ifr_ifrn.ifrn_name
 #define stats_ptr       b.ifr_ifru.ifru_data
 
@@ -153,6 +157,7 @@ struct ifpppcstatsreq {
 #define PPPIOCSCOMPRESS	_IOW('t', 77, struct ppp_option_data)
 #define PPPIOCGNPMODE	_IOWR('t', 76, struct npioctl) /* get NP mode */
 #define PPPIOCSNPMODE	_IOW('t', 75, struct npioctl)  /* set NP mode */
+#define PPPIOCSBANDWLS  _IOW('t', 73, struct bandwidth_limits) /* set upstream/downstream bandwidth limits*/
 #define PPPIOCSPASS	_IOW('t', 71, struct sock_fprog) /* set pass filter */
 #define PPPIOCSACTIVE	_IOW('t', 70, struct sock_fprog) /* set active filt */
 #define PPPIOCGDEBUG	_IOR('t', 65, int)	/* Read debug level */

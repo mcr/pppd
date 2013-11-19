@@ -37,12 +37,18 @@ static char const RCSID[] =
 #include "radiusclient.h"
 #include "fsm.h"
 #include "ipcp.h"
+#include <stdint.h>
+#include <stdlib.h>
 #include <syslog.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <string.h>
 #include <netinet/in.h>
 #include <stdlib.h>
+
+#include <asm/types.h>
+#include <net/if.h>
+#include <linux/if_ppp.h>
 
 #define BUF_LEN 1024
 
@@ -51,6 +57,8 @@ static char const RCSID[] =
 #define MSDNS 1
 
 static char *config_file = NULL;
+static struct bandwidth_limits bls = {0, 0};
+static int    acct_interim_interval = 0;
 static int add_avp(char **);
 static struct avpopt {
     char *vpstr;
@@ -60,6 +68,9 @@ static bool portnummap = 0;
 
 static option_t Options[] = {
     { "radius-config-file", o_string, &config_file },
+    { "upstream-limit", o_int, &bls.upstream_limit },
+    { "downstream-limit", o_int, &bls.downstream_limit },
+    { "acct-interim-interval", o_int, &acct_interim_interval},
     { "avpair", o_special, add_avp },
     { "map-to-ttyname", o_bool, &portnummap,
 	"Set Radius NAS-Port attribute value via libradiusclient library", OPT_PRIO | 1 },
@@ -254,6 +265,17 @@ radius_pap_auth(char *user,
 
     radius_msg[0] = 0;
     *msgp = radius_msg;
+#if 0
+    syslog(LOG_INFO, "----------PAP    Throughput  HAIWANG-----------");
+#endif
+
+    if(strcmp(config_file, rstate.config_file)) {
+        if (rc_read_config(config_file) == 0) {
+            strlcpy(rstate.config_file, config_file, MAXPATHLEN-1);
+        } else {
+	    error( "RADIUS: Can't read config file %s", rstate.config_file);
+        }
+    }
 
     if (radius_init(radius_msg) < 0) {
 	return 0;
@@ -353,6 +375,17 @@ radius_chap_verify(char *user, char *ourname, int id,
     response_len = *response++;
 
     radius_msg[0] = 0;
+#if 0
+    syslog(LOG_INFO, "----------CHAP    Throughput  HAIWANG-----------");
+#endif
+
+    if(strcmp(config_file, rstate.config_file)) {
+        if (rc_read_config(config_file) == 0) {
+            strlcpy(rstate.config_file, config_file, MAXPATHLEN-1);
+        } else {
+	    error( "RADIUS: Can't read config file %s", rstate.config_file);
+        }
+    }
 
     if (radius_init(radius_msg) < 0) {
 	error("%s", radius_msg);
@@ -726,6 +759,25 @@ radius_setparams(VALUE_PAIR *vp, char *msg, REQUEST_INFO *req_info,
 #endif /* MSDNS */
 	    }
 #endif /* CHAPMS */
+	} else if (vp->vendorcode == VENDOR_ROARING_PENGUIN) {
+	 switch (vp->attribute) {
+	  case PW_RP_UPSTREAM_LIMIT:
+	  {
+	   bls.upstream_limit = vp->lvalue;
+	   break;
+	  }
+	  case PW_RP_DOWNSTREAM_LIMIT:
+	  {
+	   bls.downstream_limit = vp->lvalue;
+	   break;
+	  }
+	 }
+	 if(bls.upstream_limit || bls.downstream_limit) {
+	  if(!set_bandwidth_limits(&bls)) {
+	   slprintf(msg, BUF_LEN, "RADIUS: Can't set upstream/downstream bit rate limit to %d/%d Kbit/s", bls.upstream_limit, bls.downstream_limit);
+	   return -1;
+	  }
+	 }
 	}
 	vp = vp->next;
     }
@@ -802,7 +854,7 @@ radius_setmppekeys(VALUE_PAIR *vp, REQUEST_INFO *req_info,
      */
     mppe_set_keys(challenge, &plain[8]);
 
-    return 0;    
+    return 0;
 }
 
 /**********************************************************************
@@ -955,6 +1007,16 @@ radius_acct_start(void)
     } else {
 	rstate.accounting_started = 1;
 	/* Kick off periodic accounting reports */
+        if (!rstate.acct_interim_interval) {
+            rstate.acct_interim_interval = acct_interim_interval;
+        }
+
+        if (rstate.acct_interim_interval &&
+                    rstate.acct_interim_interval < 60) {
+                    rstate.acct_interim_interval = 60;
+        }
+
+
 	if (rstate.acct_interim_interval) {
 	    TIMEOUT(radius_acct_interim, NULL, rstate.acct_interim_interval);
 	}
@@ -1013,11 +1075,27 @@ radius_acct_stop(void)
 	av_type = link_connect_time;
 	rc_avpair_add(&send, PW_ACCT_SESSION_TIME, &av_type, 0, VENDOR_NONE);
 
+#ifdef LONGCOUNTER
+
+	av_type = extended_link_stats.long_bytes_out % UINT32_MAX;
+	rc_avpair_add(&send, PW_ACCT_OUTPUT_OCTETS, &av_type, 0, VENDOR_NONE);
+
+	av_type = extended_link_stats.long_bytes_in % UINT32_MAX;
+	rc_avpair_add(&send, PW_ACCT_INPUT_OCTETS, &av_type, 0, VENDOR_NONE);
+
+	av_type = extended_link_stats.long_bytes_out / UINT32_MAX;
+	rc_avpair_add(&send, PW_ACCT_OUTPUT_GIGAWORDS, &av_type, 0, VENDOR_NONE);
+
+	av_type = extended_link_stats.long_bytes_in / UINT32_MAX;
+	rc_avpair_add(&send, PW_ACCT_INPUT_GIGAWORDS, &av_type, 0, VENDOR_NONE);
+
+#else
 	av_type = link_stats.bytes_out;
 	rc_avpair_add(&send, PW_ACCT_OUTPUT_OCTETS, &av_type, 0, VENDOR_NONE);
 
 	av_type = link_stats.bytes_in;
 	rc_avpair_add(&send, PW_ACCT_INPUT_OCTETS, &av_type, 0, VENDOR_NONE);
+#endif
 
 	av_type = link_stats.pkts_out;
 	rc_avpair_add(&send, PW_ACCT_OUTPUT_PACKETS, &av_type, 0, VENDOR_NONE);
@@ -1069,11 +1147,11 @@ radius_acct_stop(void)
 	case EXIT_CALLBACK:
 	    av_type = PW_CALLBACK;
 	    break;
-	    
+
 	case EXIT_CONNECT_TIME:
 	    av_type = PW_ACCT_SESSION_TIMEOUT;
 	    break;
-	    
+
 #ifdef MAXOCTETS
 	case EXIT_TRAFFIC_LIMIT:
 	    av_type = PW_NAS_REQUEST;
@@ -1161,11 +1239,27 @@ radius_acct_interim(void *ignored)
 	av_type = link_connect_time;
 	rc_avpair_add(&send, PW_ACCT_SESSION_TIME, &av_type, 0, VENDOR_NONE);
 
+#ifdef LONGCOUNTER
+
+	av_type = extended_link_stats.long_bytes_out % UINT32_MAX;
+	rc_avpair_add(&send, PW_ACCT_OUTPUT_OCTETS, &av_type, 0, VENDOR_NONE);
+
+	av_type = extended_link_stats.long_bytes_in % UINT32_MAX;
+	rc_avpair_add(&send, PW_ACCT_INPUT_OCTETS, &av_type, 0, VENDOR_NONE);
+
+	av_type = extended_link_stats.long_bytes_out / UINT32_MAX;
+	rc_avpair_add(&send, PW_ACCT_OUTPUT_GIGAWORDS, &av_type, 0, VENDOR_NONE);
+
+	av_type = extended_link_stats.long_bytes_in / UINT32_MAX;
+	rc_avpair_add(&send, PW_ACCT_INPUT_GIGAWORDS, &av_type, 0, VENDOR_NONE);
+
+#else
 	av_type = link_stats.bytes_out;
 	rc_avpair_add(&send, PW_ACCT_OUTPUT_OCTETS, &av_type, 0, VENDOR_NONE);
 
 	av_type = link_stats.bytes_in;
 	rc_avpair_add(&send, PW_ACCT_INPUT_OCTETS, &av_type, 0, VENDOR_NONE);
+#endif
 
 	av_type = link_stats.pkts_out;
 	rc_avpair_add(&send, PW_ACCT_OUTPUT_PACKETS, &av_type, 0, VENDOR_NONE);
@@ -1290,6 +1384,14 @@ radius_init(char *msg)
 	free(avpopt);
 	avpopt = n;
     }
+
+    if(bls.upstream_limit || bls.downstream_limit) {
+     if(!set_bandwidth_limits(&bls)) {
+      slprintf(msg, BUF_LEN, "RADIUS: Can't set upstream/downstream bit rate limit to %d/%d Kbit/s", bls.upstream_limit, bls.downstream_limit);
+      return -1;
+     }
+    }
+
     return 0;
 }
 

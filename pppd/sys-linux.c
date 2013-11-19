@@ -388,9 +388,26 @@ static int set_kdebugflag (int requested_level)
 
 /********************************************************************
  *
- * tty_establish_ppp - Turn the serial port into a ppp interface.
+ * set_bandwidth_limits - Define upstream/downstream bit rate limit
  */
 
+int set_bandwidth_limits(struct bandwidth_limits *bls)
+{
+#if 0 /* Fix me -> bursty transmission */
+ if (ioctl(ppp_dev_fd, PPPIOCSBANDWLS, bls) < 0) {
+  if (!ok_error(errno))
+   error("ioctl(PPPIOCSBANDWLS): %m (line %d)", __LINE__);
+   return (0);
+ }
+ SYSDEBUG ((LOG_INFO, "set upstream/downstream bit rate limit to %d/%d Kbaud", bls->upstream_limit, bls->downstream_limit));
+#endif
+ return (1);
+}
+
+/********************************************************************
+ *
+ * tty_establish_ppp - Turn the serial port into a ppp interface.
+ */
 int tty_establish_ppp (int tty_fd)
 {
     int ret_fd;
