@@ -1,5 +1,5 @@
 /*
- * $Id: buildreq.c,v 1.1 2004/11/14 07:26:26 paulus Exp $
+ * $Id: buildreq.c,v 1.1.2.6 2009/09/25 08:53:18 btrojanowski Exp $
  *
  * Copyright (C) 1995,1997 Lars Fenneberg
  *
@@ -126,14 +126,17 @@ unsigned char rc_get_seqnbr(void)
 		return rc_guess_seqnbr();
 	}
 
-	pos = ftell(sf);
-	rewind(sf);
-	if (fscanf(sf, "%d", &seq_nbr) != 1) {
-		if (pos != ftell(sf)) {
-			/* file was not empty */
-			error("rc_get_seqnbr: fscanf failure: %s", seqfile);
-		}
+	if (fstat(fileno(sf), &st) == -1 || !st.st_size) {
 		seq_nbr = rc_guess_seqnbr();
+		rc_log(LOG_INFO,"rc_get_seqnbr: no sequence number in %s, using %u",
+				seqfile, seq_nbr);
+	} else {
+		rewind(sf);
+		if (fscanf(sf, "%d", &seq_nbr) != 1) {
+			rc_log(LOG_ERR,"rc_get_seqnbr: fscanf(%s) failure: %s", seqfile, strerror(errno));
+			seq_nbr = rc_guess_seqnbr();
+			rc_log(LOG_INFO,"rc_get_seqnbr: using seq_nbr=%u", seq_nbr);
+		}
 	}
 
 	rewind(sf);
