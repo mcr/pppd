@@ -94,8 +94,10 @@ static bool usepeerdns;			/* Ask peer for DNS addrs */
 static int ipcp_is_up;			/* have called np_up() */
 static int ipcp_is_open;		/* haven't called np_finished() */
 static bool ask_for_local;		/* request our address from peer */
+#ifdef FULL_IPCP
 static char vj_value[8];		/* string form of vj option value */
 static char netmask_str[20];		/* string form of netmask value */
+#endif /* FULL_IPCP */
 
 /*
  * Callbacks for fsm code.  (CI = Configuration Information)
@@ -134,14 +136,17 @@ static fsm_callbacks ipcp_callbacks = { /* IPCP callback routines */
 /*
  * Command-line options.
  */
+#ifdef FULL_IPCP
 static int setvjslots __P((char **));
-static int setdnsaddr __P((char **));
 static int setwinsaddr __P((char **));
 static int setnetmask __P((char **));
+#endif /* FULL_IPCP */
+static int setdnsaddr __P((char **));
 int setipaddr __P((char *, char **, int));
 static void printipaddr __P((option_t *, void (*)(void *, char *,...),void *));
 
 static option_t ipcp_option_list[] = {
+#ifdef FULL_IPCP
     { "noip", o_bool, &ipcp_protent.enabled_flag,
       "Disable IP and IPCP" },
     { "-ip", o_bool, &ipcp_protent.enabled_flag,
@@ -174,9 +179,11 @@ static option_t ipcp_option_list[] = {
 
     { "noipdefault", o_bool, &disable_defaultip,
       "Don't use name for default IP adrs", 1 },
+#endif /* FULL_IPCP */
 
     { "ms-dns", 1, (void *)setdnsaddr,
       "DNS address for the peer's use" },
+#ifdef FULL_IPCP
     { "ms-wins", 1, (void *)setwinsaddr,
       "Nameserver for SMB over TCP/IP for peer" },
 
@@ -197,12 +204,14 @@ static option_t ipcp_option_list[] = {
     { "-defaultroute", o_bool, &ipcp_allowoptions[0].default_route,
       "disable defaultroute option", OPT_ALIAS | OPT_A2CLR,
       &ipcp_wantoptions[0].default_route },
+#endif /* FULL_IPCP */
 
     { "proxyarp", o_bool, &ipcp_wantoptions[0].proxy_arp,
       "Add proxy ARP entry", OPT_ENABLE|1, &ipcp_allowoptions[0].proxy_arp },
     { "noproxyarp", o_bool, &ipcp_allowoptions[0].proxy_arp,
       "disable proxyarp option", OPT_A2CLR,
       &ipcp_wantoptions[0].proxy_arp },
+#ifdef FULL_IPCP
     { "-proxyarp", o_bool, &ipcp_allowoptions[0].proxy_arp,
       "disable proxyarp option", OPT_ALIAS | OPT_A2CLR,
       &ipcp_wantoptions[0].proxy_arp },
@@ -219,6 +228,7 @@ static option_t ipcp_option_list[] = {
     { "ipcp-no-address", o_bool, &ipcp_wantoptions[0].neg_addr,
       "Disable IP-Address usage", OPT_A2CLR,
       &ipcp_allowoptions[0].neg_addr },
+#endif /* FULL_IPCP */
 #ifdef __linux__
     { "noremoteip", o_bool, &noremoteip,
       "Allow peer to have no IP address", 1 },
@@ -315,6 +325,7 @@ u_int32_t ipaddr;
  * Option parsing.
  */
 
+#ifdef FULL_IPCP
 /*
  * setvjslots - set maximum number of connection slots for VJ compression
  */
@@ -335,6 +346,7 @@ setvjslots(argv)
     slprintf(vj_value, sizeof(vj_value), "%d", value);
     return 1;
 }
+#endif /* FULL_IPCP */
 
 /*
  * setdnsaddr - set the dns address(es)
@@ -370,6 +382,7 @@ setdnsaddr(argv)
     return (1);
 }
 
+#ifdef FULL_IPCP
 /*
  * setwinsaddr - set the wins address(es)
  * This is primrarly used with the Samba package under UNIX or for pointing
@@ -405,6 +418,7 @@ setwinsaddr(argv)
 
     return (1);
 }
+#endif /* FULL_IPCP */
 
 /*
  * setipaddr - Set the IP address
@@ -431,7 +445,7 @@ setipaddr(arg, argv, doit)
 	return 0;
     if (!doit)
 	return 1;
-  
+
     /*
      * If colon first character, then no local addr.
      */
@@ -453,7 +467,7 @@ setipaddr(arg, argv, doit)
 	*colon = ':';
 	prio_local = option_priority;
     }
-  
+
     /*
      * If colon last character, then no remote addr.
      */
@@ -494,6 +508,7 @@ printipaddr(opt, printer, arg)
 		printer(arg, "%I", wo->hisaddr);
 }
 
+#ifdef FULL_IPCP
 /*
  * setnetmask - set the netmask to be used on the interface.
  */
@@ -524,6 +539,7 @@ setnetmask(argv)
 
     return (1);
 }
+#endif /* FULL_IPCP */
 
 int
 parse_dotted_ip(p, vp)
@@ -608,6 +624,13 @@ ipcp_init(unit)
      */
     ao->proxy_arp = 1;
     ao->default_route = 1;
+
+#ifdef FULL_IPCP
+    wo->neg_vj = 1;
+    wo->cflag = 1;
+    ao->neg_vj = 1;
+    ao->cflag = 1;
+#endif /* FULL_IPCP */
 }
 
 
@@ -858,7 +881,7 @@ ipcp_addci(f, ucp, lenp)
     ADDCIWINS(CI_MS_WINS1, go->winsaddr[0]);
 
     ADDCIWINS(CI_MS_WINS2, go->winsaddr[1]);
-    
+
     *lenp -= len;
 }
 
@@ -1422,7 +1445,7 @@ ipcp_reqci(f, inp, len, reject_if_disagree)
      * Reset all his options.
      */
     BZERO(ho, sizeof(*ho));
-    
+
     /*
      * Process all his options.
      */
@@ -1532,7 +1555,7 @@ ipcp_reqci(f, inp, len, reject_if_disagree)
 		wo->req_addr = 0;	/* don't NAK with 0.0.0.0 later */
 		break;
 	    }
-	
+
 	    ho->neg_addr = 1;
 	    ho->hisaddr = ciaddr1;
 	    break;
@@ -1576,7 +1599,7 @@ ipcp_reqci(f, inp, len, reject_if_disagree)
 		orc = CONFNAK;
             }
             break;
-	
+
 	case CI_COMPRESSTYPE:
 	    if (!ao->neg_vj ||
 		(cilen != CILEN_VJ && cilen != CILEN_COMPRESS)) {
@@ -1595,7 +1618,7 @@ ipcp_reqci(f, inp, len, reject_if_disagree)
 	    ho->vj_protocol = cishort;
 	    if (cilen == CILEN_VJ) {
 		GETCHAR(maxslotindex, p);
-		if (maxslotindex > ao->maxslotindex) { 
+		if (maxslotindex > ao->maxslotindex) {
 		    orc = CONFNAK;
 		    if (!reject_if_disagree){
 			DECPTR(1, p);
@@ -1856,7 +1879,7 @@ ipcp_up(f)
 	    }
 
 	    /* assign a default route through the interface if required */
-	    if (ipcp_wantoptions[f->unit].default_route) 
+	    if (ipcp_wantoptions[f->unit].default_route)
 		if (sifdefaultroute(f->unit, go->ouraddr, ho->hisaddr))
 		    default_route_set[f->unit] = 1;
 
@@ -1906,7 +1929,7 @@ ipcp_up(f)
 	sifnpmode(f->unit, PPP_IP, NPMODE_PASS);
 
 	/* assign a default route through the interface if required */
-	if (ipcp_wantoptions[f->unit].default_route) 
+	if (ipcp_wantoptions[f->unit].default_route)
 	    if (sifdefaultroute(f->unit, go->ouraddr, ho->hisaddr))
 		default_route_set[f->unit] = 1;
 
