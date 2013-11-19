@@ -166,6 +166,12 @@ ifdef USE_FULL_IPCP
 BUILD_OPTIONS+= -DFULL_IPCP -DUSE_FULL_IPCP
 endif
 
+ifdef USE_FULL_LCP
+#PPPDSRC  += ecp.c
+#PPP_OPTIONAL_OBJS += ecp.o
+BUILD_OPTIONS+= -DFULL_LCP
+endif
+
 ifdef HAS_SHADOW
 CFLAGS   += -DHAS_SHADOW
 #LIBS     += -lshadow $(LIBS)

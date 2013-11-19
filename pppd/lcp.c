@@ -76,7 +76,9 @@ int	lcp_echo_fails = 0;	/* Tolerance to unanswered echo-requests */
 bool	lax_recv = 0;		/* accept control chars in asyncmap */
 bool	noendpoint = 0;		/* don't send/accept endpoint discriminator */
 
+#ifdef FULL_LCP
 static int noopt __P((char **));
+#endif /* FULL_LCP */
 
 #ifdef HAVE_MULTILINK
 static int setendpoint __P((char **));
@@ -86,6 +88,7 @@ static void printendpoint __P((option_t *, void (*)(void *, char *, ...),
 
 static option_t lcp_option_list[] = {
     /* LCP options */
+#ifdef FULL_LCP
     { "-all", o_special_noarg, (void *)noopt,
       "Don't request/allow any LCP options" },
 
@@ -117,20 +120,25 @@ static option_t lcp_option_list[] = {
     { "-mn", o_bool, &lcp_wantoptions[0].neg_magicnumber,
       "Disable magic number negotiation (looped-back line detection)",
       OPT_ALIAS | OPT_A2CLR, &lcp_allowoptions[0].neg_magicnumber },
+#endif /* FULL_LCP */
 
     { "mru", o_int, &lcp_wantoptions[0].mru,
       "Set MRU (maximum received packet size) for negotiation",
       OPT_PRIO, &lcp_wantoptions[0].neg_mru },
+
+#ifdef FULL_LCP
     { "default-mru", o_bool, &lcp_wantoptions[0].neg_mru,
       "Disable MRU negotiation (use default 1500)",
       OPT_PRIOSUB | OPT_A2CLR, &lcp_allowoptions[0].neg_mru },
     { "-mru", o_bool, &lcp_wantoptions[0].neg_mru,
       "Disable MRU negotiation (use default 1500)",
       OPT_ALIAS | OPT_PRIOSUB | OPT_A2CLR, &lcp_allowoptions[0].neg_mru },
+#endif /* FULL_LCP */
 
     { "mtu", o_int, &lcp_allowoptions[0].mru,
       "Set our MTU", OPT_LIMITS, NULL, MAXMRU, MINMRU },
 
+#ifdef FULL_LCP
     { "nopcomp", o_bool, &lcp_wantoptions[0].neg_pcompression,
       "Disable protocol field compression",
       OPT_A2CLR, &lcp_allowoptions[0].neg_pcompression },
@@ -142,6 +150,7 @@ static option_t lcp_option_list[] = {
       "Set passive mode", 1 },
     { "-p", o_bool, &lcp_wantoptions[0].passive,
       "Set passive mode", OPT_ALIAS | 1 },
+#endif /* FULL_LCP */
 
     { "silent", o_bool, &lcp_wantoptions[0].silent,
       "Set silent mode", 1 },
@@ -180,8 +189,10 @@ static option_t lcp_option_list[] = {
       OPT_PRIO | OPT_A2PRINTER, (void *) printendpoint },
 #endif /* HAVE_MULTILINK */
 
+#ifdef FULL_LCP
     { "noendpoint", o_bool, &noendpoint,
       "Don't send or accept multilink endpoint discriminator", 1 },
+#endif /* FULL_LCP */
 
     {NULL}
 };
@@ -292,7 +303,7 @@ int lcp_loopbackfail = DEFLOOPBACKFAIL;
 
 #define CODENAME(x)	((x) == CONFACK ? "ACK" : \
 			 (x) == CONFNAK ? "NAK" : "REJ")
-
+#ifdef FULL_LCP
 /*
  * noopt - Disable all options (why?).
  */
@@ -305,6 +316,7 @@ noopt(argv)
 
     return (1);
 }
+#endif /* FULL_LCP */
 
 #ifdef HAVE_MULTILINK
 static int
@@ -366,6 +378,18 @@ lcp_init(unit)
     ao->neg_pcompression = 1;
     ao->neg_accompression = 1;
     ao->neg_endpoint = 1;
+
+#ifdef FULL_LCP
+    wo->neg_accompression = 1;
+    wo->neg_asyncmap = 1;
+    wo->neg_pcompression = 1;
+    ao->neg_accompression = 1;
+    ao->neg_asyncmap = 1;
+    ao->neg_pcompression = 1;
+#else /* FULL_LCP */
+    wo->asyncmap = ~0U;
+    ao->asyncmap = ~0U;
+#endif /* FULL_LCP */
 }
 
 
@@ -520,7 +544,7 @@ lcp_extcode(f, code, id, inp, len)
     case PROTREJ:
 	lcp_rprotrej(f, inp, len);
 	break;
-    
+
     case ECHOREQ:
 	if (f->state != OPENED)
 	    break;
@@ -528,7 +552,7 @@ lcp_extcode(f, code, id, inp, len)
 	PUTLONG(lcp_gotoptions[f->unit].magicnumber, magp);
 	fsm_sdata(f, ECHOREP, id, inp, len);
 	break;
-    
+
     case ECHOREP:
 	lcp_received_echo_reply(f, id, inp, len);
 	break;
@@ -544,7 +568,7 @@ lcp_extcode(f, code, id, inp, len)
     return 1;
 }
 
-    
+
 /*
  * lcp_rprotrej - Receive an Protocol-Reject.
  *
@@ -2357,7 +2381,7 @@ lcp_echo_lowerup (unit)
     lcp_echos_pending      = 0;
     lcp_echo_number        = 0;
     lcp_echo_timer_running = 0;
-  
+
     /* If a timeout interval is specified then start the timer */
     if (lcp_echo_interval != 0)
         LcpEchoCheck (f);
