@@ -999,6 +999,7 @@ lcp_nakci(f, p, len, treat_as_reject)
 {
     lcp_options *go = &lcp_gotoptions[f->unit];
     lcp_options *wo = &lcp_wantoptions[f->unit];
+    lcp_options *ho = &lcp_hisoptions[f->unit];
     u_char citype, cichar, *next;
     u_short cishort;
     u_int32_t cilong;
