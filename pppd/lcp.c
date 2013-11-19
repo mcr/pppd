@@ -204,6 +204,12 @@ lcp_options lcp_gotoptions[NUM_PPP];	/* Options that peer ack'd */
 lcp_options lcp_allowoptions[NUM_PPP];	/* Options we allow peer to request */
 lcp_options lcp_hisoptions[NUM_PPP];	/* Options that we ack'd */
 
+static struct lcp_track_nakci {
+	int mru;
+	int count;
+} lcp_track_nakci[NUM_PPP];
+#define LCP_MAX_SAME_NAKCI 10
+
 static int lcp_echos_pending = 0;	/* Number of outstanding echo msgs */
 static int lcp_echo_number   = 0;	/* ID number of next echo frame */
 static int lcp_echo_timer_running = 0;  /* set if a timer is running */
@@ -400,8 +406,22 @@ void
 lcp_open(unit)
     int unit;
 {
+    static int first_time = 1;
+
     fsm *f = &lcp_fsm[unit];
     lcp_options *wo = &lcp_wantoptions[unit];
+
+    memset(&lcp_track_nakci[unit], 0, sizeof(struct lcp_track_nakci));
+
+    if (first_time) {
+	    first_time = 0;
+    } else {
+        if (lcp_hisoptions[0].neg_mru) {
+		if (lcp_wantoptions[0].mru > lcp_hisoptions[0].mru) {
+			lcp_wantoptions[0].mru = lcp_hisoptions[0].mru;
+		}
+	}
+    }
 
     f->flags &= ~(OPT_PASSIVE | OPT_SILENT);
     if (wo->passive)
@@ -986,6 +1006,7 @@ lcp_nakci(f, p, len, treat_as_reject)
     lcp_options try;		/* options to request next time */
     int looped_back = 0;
     int cilen;
+    struct lcp_track_nakci *tn = &lcp_track_nakci[f->unit];
 
     BZERO(&no, sizeof(no));
     try = *go;
