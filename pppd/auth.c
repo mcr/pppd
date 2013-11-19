@@ -1465,8 +1465,16 @@ check_passwd(unit, auser, userlen, apasswd, passwdlen, msg)
      * If there are unprintable characters in the password, make
      * them visible.
      */
+
+#if 0
     slprintf(passwd, sizeof(passwd), "%.*v", passwdlen, apasswd);
     slprintf(user, sizeof(user), "%.*v", userlen, auser);
+#endif
+    BCOPY(auser, user, userlen);
+    BCOPY(apasswd, passwd, passwdlen);
+    passwd[passwdlen]=0;
+    user[userlen] =0;
+
     *msg = "";
 
     /*
