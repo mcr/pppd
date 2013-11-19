@@ -263,6 +263,8 @@ extern bool	multilink_master;
 extern bool	bundle_eof;
 extern bool	bundle_terminating;
 
+extern int      renegotiating_with_realm; /* indicates renegotiation after realm lookup */
+
 extern struct notifier *pidchange;   /* for notifications of pid changing */
 extern struct notifier *phasechange; /* for notifications of phase changes */
 extern struct notifier *exitnotify;  /* for notification that we're exiting */

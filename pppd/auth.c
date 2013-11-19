@@ -579,11 +579,17 @@ link_required(unit)
 void start_link(unit)
     int unit;
 {
+    char *msg;
+
+    if (renegotiating_with_realm && devfd > 0 && fd_ppp > 0)
+	    goto already_connected;
+
     status = EXIT_CONNECT_FAILED;
     new_phase(PHASE_SERIALCONN);
 
     hungup = 0;
     devfd = the_channel->connect();
+    msg = "Connect script failed";
     if (devfd < 0)
 	goto fail;
 
@@ -596,6 +602,7 @@ void start_link(unit)
      * gives us.  Thus we don't need the tdb_writelock/tdb_writeunlock.
      */
     fd_ppp = the_channel->establish_ppp(devfd);
+    msg = "ppp establishment failed";
     if (fd_ppp < 0) {
 	status = EXIT_FATAL_ERROR;
 	goto disconnect;
@@ -617,6 +624,7 @@ void start_link(unit)
     status = EXIT_NEGOTIATION_FAILED;
     new_phase(PHASE_ESTABLISH);
 
+already_connected:
     lcp_lowerup(0);
     return;
 
