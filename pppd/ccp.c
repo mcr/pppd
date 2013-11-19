@@ -28,7 +28,7 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define RCSID	"$Id: ccp.c,v 1.50 2005/06/26 19:34:41 carlsonj Exp $"
+#define RCSID	"$Id: ccp.c,v 1.1.1.1.6.6 2009/09/25 08:53:18 btrojanowski Exp $"
 
 #include <stdlib.h>
 #include <string.h>
@@ -54,6 +54,7 @@ static const char rcsid[] = RCSID;
  */
 #define DEFLATE_MIN_WORKS	9
 
+#ifdef COMP
 /*
  * Command-line options.
  */
@@ -61,6 +62,7 @@ static int setbsdcomp __P((char **));
 static int setdeflate __P((char **));
 static char bsd_value[8];
 static char deflate_value[8];
+#endif
 
 /*
  * Option variables.
@@ -70,6 +72,7 @@ bool refuse_mppe_stateful = 1;		/* Allow stateful mode? */
 #endif
 
 static option_t ccp_option_list[] = {
+#ifdef COMP
     { "noccp", o_bool, &ccp_protent.enabled_flag,
       "Disable CCP negotiation" },
     { "-ccp", o_bool, &ccp_protent.enabled_flag,
@@ -107,7 +110,7 @@ static option_t ccp_option_list[] = {
     { "-predictor1", o_bool, &ccp_wantoptions[0].predictor_1,
       "don't allow Predictor-1", OPT_ALIAS | OPT_PRIOSUB | OPT_A2CLR,
       &ccp_allowoptions[0].predictor_1 },
-
+#endif
 #ifdef MPPE
     /* MPPE options are symmetrical ... we only set wantoptions here */
     { "require-mppe", o_bool, &ccp_wantoptions[0].mppe,
@@ -214,7 +217,9 @@ static int  ccp_rejci __P((fsm *, u_char *, int));
 static int  ccp_reqci __P((fsm *, u_char *, int *, int));
 static void ccp_up __P((fsm *));
 static void ccp_down __P((fsm *));
+#ifdef COMP
 static int  ccp_extcode __P((fsm *, int, int, u_char *, int));
+#endif
 static void ccp_rack_timeout __P((void *));
 static char *method_name __P((ccp_options *, ccp_options *));
 
@@ -232,7 +237,11 @@ static fsm_callbacks ccp_callbacks = {
     NULL,
     NULL,
     NULL,
+#ifdef COMP
     ccp_extcode,
+#else
+    NULL,
+#endif
     "CCP"
 };
 
@@ -254,6 +263,7 @@ static int ccp_localstate[NUM_PPP];
 
 static int all_rejected[NUM_PPP];	/* we rejected all peer's options */
 
+#ifdef COMP
 /*
  * Option parsing.
  */
@@ -343,6 +353,7 @@ setdeflate(argv)
 
     return 1;
 }
+#endif
 
 /*
  * ccp_init - initialize CCP.
@@ -362,7 +373,7 @@ ccp_init(unit)
     memset(&ccp_gotoptions[unit],   0, sizeof(ccp_options));
     memset(&ccp_allowoptions[unit], 0, sizeof(ccp_options));
     memset(&ccp_hisoptions[unit],   0, sizeof(ccp_options));
-
+#ifdef COMP
     ccp_wantoptions[0].deflate = 1;
     ccp_wantoptions[0].deflate_size = DEFLATE_MAX_SIZE;
     ccp_wantoptions[0].deflate_correct = 1;
@@ -378,6 +389,23 @@ ccp_init(unit)
     ccp_allowoptions[0].bsd_bits = BSD_MAX_BITS;
 
     ccp_allowoptions[0].predictor_1 = 1;
+#else
+    ccp_wantoptions[0].deflate = 0;
+    ccp_wantoptions[0].deflate_size = DEFLATE_MAX_SIZE;
+    ccp_wantoptions[0].deflate_correct = 0;
+    ccp_wantoptions[0].deflate_draft = 0;
+    ccp_allowoptions[0].deflate = 0;
+    ccp_allowoptions[0].deflate_size = DEFLATE_MAX_SIZE;
+    ccp_allowoptions[0].deflate_correct = 0;
+    ccp_allowoptions[0].deflate_draft = 0;
+
+    ccp_wantoptions[0].bsd_compress = 0;
+    ccp_wantoptions[0].bsd_bits = BSD_MAX_BITS;
+    ccp_allowoptions[0].bsd_compress = 0;
+    ccp_allowoptions[0].bsd_bits = BSD_MAX_BITS;
+
+    ccp_allowoptions[0].predictor_1 = 0;
+#endif
 }
 
 /*
@@ -471,6 +499,7 @@ ccp_input(unit, p, len)
 	ccp_close(unit, "No compression negotiated");
 }
 
+#ifdef COMP
 /*
  * Handle a CCP-specific code.
  */
@@ -503,6 +532,7 @@ ccp_extcode(f, code, id, p, len)
 
     return 1;
 }
+#endif
 
 /*
  * ccp_protrej - peer doesn't talk CCP.
@@ -599,6 +629,8 @@ ccp_resetci(f)
 	    return;
 	}
 
+	go->mppe |= MPPE_OPT_STATEFUL;
+
 	/* sync options */
 	ao->mppe = go->mppe;
 	/* MPPE is not compatible with other compression types */
@@ -625,6 +657,7 @@ ccp_resetci(f)
 	}
     }
 #endif
+#ifdef COMP
     if (go->bsd_compress) {
 	opt_buf[0] = CI_BSD_COMPRESS;
 	opt_buf[1] = CILEN_BSD_COMPRESS;
@@ -664,6 +697,7 @@ ccp_resetci(f)
 	if (ccp_test(f->unit, opt_buf, CILEN_PREDICTOR_2, 0) <= 0)
 	    go->predictor_2 = 0;
     }
+#endif
 }
 
 /*
@@ -717,6 +751,7 @@ ccp_addci(f, p, lenp)
 	    lcp_close(f->unit, "MPPE required but not available in kernel");
     }
 #endif
+#ifdef COMP
     if (go->deflate) {
 	p[0] = go->deflate_correct? CI_DEFLATE: CI_DEFLATE_DRAFT;
 	p[1] = CILEN_DEFLATE;
@@ -794,7 +829,7 @@ ccp_addci(f, p, lenp)
 	    p += CILEN_PREDICTOR_2;
 	}
     }
-
+#endif
     go->method = (p > p0)? p0[0]: -1;
 
     *lenp = p - p0;
@@ -811,7 +846,9 @@ ccp_ackci(f, p, len)
     int len;
 {
     ccp_options *go = &ccp_gotoptions[f->unit];
+#ifdef COMP
     u_char *p0 = p;
+#endif
 
 #ifdef MPPE
     if (go->mppe) {
@@ -829,6 +866,7 @@ ccp_ackci(f, p, len)
 	    return 1;
     }
 #endif
+#ifdef COMP
     if (go->deflate) {
 	if (len < CILEN_DEFLATE
 	    || p[0] != (go->deflate_correct? CI_DEFLATE: CI_DEFLATE_DRAFT)
@@ -883,7 +921,7 @@ ccp_ackci(f, p, len)
 	if (p == p0 && len == 0)
 	    return 1;
     }
-
+#endif
     if (len != 0)
 	return 0;
     return 1;
@@ -930,6 +968,7 @@ ccp_nakci(f, p, len, treat_as_reject)
 	}
     }
 #endif /* MPPE */
+#ifdef COMP
     if (go->deflate && len >= CILEN_DEFLATE
 	&& p[0] == (go->deflate_correct? CI_DEFLATE: CI_DEFLATE_DRAFT)
 	&& p[1] == CILEN_DEFLATE) {
@@ -968,7 +1007,7 @@ ccp_nakci(f, p, len, treat_as_reject)
 	p += CILEN_BSD_COMPRESS;
 	len -= CILEN_BSD_COMPRESS;
     }
-
+#endif
     /*
      * Predictor-1 and 2 have no options, so they can't be Naked.
      *
@@ -1010,8 +1049,10 @@ ccp_rejci(f, p, len)
 	len -= CILEN_MPPE;
     }
 #endif
-    if (go->deflate_correct && len >= CILEN_DEFLATE
-	&& p[0] == CI_DEFLATE && p[1] == CILEN_DEFLATE) {
+#ifdef COMP
+    if (go->deflate && len >= CILEN_DEFLATE
+	&& p[0] == (go->deflate_correct? CI_DEFLATE: CI_DEFLATE_DRAFT)
+	&& p[1] == CILEN_DEFLATE) {
 	if (p[2] != DEFLATE_MAKE_OPT(go->deflate_size)
 	    || p[3] != DEFLATE_CHK_SEQUENCE)
 	    return 0;		/* Rej is bad */
@@ -1050,7 +1091,7 @@ ccp_rejci(f, p, len)
 	p += CILEN_PREDICTOR_2;
 	len -= CILEN_PREDICTOR_2;
     }
-
+#endif
     if (len != 0)
 	return 0;
 
@@ -1072,9 +1113,12 @@ ccp_reqci(f, p, lenp, dont_nak)
     int *lenp;
     int dont_nak;
 {
-    int ret, newret, res;
+    int ret, newret;
     u_char *p0, *retp;
-    int len, clen, type, nb;
+    int len, clen, type;
+#ifdef COMP
+    int res, nb;
+#endif
     ccp_options *ho = &ccp_hisoptions[f->unit];
     ccp_options *ao = &ccp_allowoptions[f->unit];
 #ifdef MPPE
@@ -1203,6 +1247,7 @@ ccp_reqci(f, p, lenp, dont_nak)
 		rej_for_ci_mppe = 0;
 		break;
 #endif /* MPPE */
+#ifdef COMP
 	    case CI_DEFLATE:
 	    case CI_DEFLATE_DRAFT:
 		if (!ao->deflate || clen != CILEN_DEFLATE
@@ -1316,7 +1361,7 @@ ccp_reqci(f, p, lenp, dont_nak)
 		    newret = CONFREJ;
 		}
 		break;
-
+#endif
 	    default:
 		newret = CONFREJ;
 	    }
@@ -1389,6 +1434,7 @@ method_name(opt, opt2)
 	break;
     }
 #endif
+#ifdef COMP
     case CI_DEFLATE:
     case CI_DEFLATE_DRAFT:
 	if (opt2 != NULL && opt2->deflate_size != opt->deflate_size)
@@ -1412,6 +1458,7 @@ method_name(opt, opt2)
 	return "Predictor 1";
     case CI_PREDICTOR_2:
 	return "Predictor 2";
+#endif
     default:
 	slprintf(result, sizeof(result), "Method %d", opt->method);
     }
@@ -1550,6 +1597,7 @@ ccp_printpkt(p, plen, printer, arg)
 		}
 		break;
 #endif
+#ifdef COMP
 	    case CI_DEFLATE:
 	    case CI_DEFLATE_DRAFT:
 		if (optlen >= CILEN_DEFLATE) {
@@ -1582,6 +1630,7 @@ ccp_printpkt(p, plen, printer, arg)
 		    p += CILEN_PREDICTOR_2;
 		}
 		break;
+#endif
 	    }
 	    while (p < optend)
 		printer(arg, " %.2x", *p++);
@@ -1675,4 +1724,3 @@ ccp_rack_timeout(arg)
     } else
 	ccp_localstate[f->unit] &= ~RACK_PENDING;
 }
-
