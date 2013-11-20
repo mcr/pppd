@@ -50,7 +50,7 @@ VERSION = $(shell awk -F '"' '/VERSION/ { print $$2; }' ../patchlevel.h)
 install: $(PLUGINS)
 	$(INSTALL) -d $(LIBDIR)
 	$(INSTALL) $? $(LIBDIR)
-	for d in $(SUBDIRS); do $(MAKE) $(MFLAGS) KERNEL_INC_DIR=${KERNEL_INC_DIR}  -C $$d INSTALL=$(INSTALL) \
+	for d in $(SUBDIRS); do $(MAKE) $(MFLAGS) -C $$d INSTALL=$(INSTALL) \
 				LIBDIR=$(LIBDIR) install || exit 1 ; done
 
 clean:
