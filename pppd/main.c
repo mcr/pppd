@@ -128,6 +128,7 @@ char ifname[32];		/* Interface name */
 int ifunit;			/* Interface unit number */
 
 struct channel *the_channel;
+struct channel *the_channel_o = NULL;
 
 char *progname;			/* Name of this program */
 char hostname[MAXNAMELEN];	/* Our hostname */
@@ -203,6 +204,8 @@ static struct timeval start_time;	/* Time when link was started. */
 
 static struct pppd_stats old_link_stats;
 struct pppd_stats link_stats;
+struct extended_pppd_stats extended_link_stats;
+
 unsigned link_connect_time;
 int link_stats_valid;
 
