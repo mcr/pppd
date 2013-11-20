@@ -14,10 +14,25 @@ BINDIR = $(DESTDIR)/sbin
 MANDIR = $(DESTDIR)/share/man/man8
 LIBDIR = $(DESTDIR)/lib/pppd/$(VERSION)
 
-SUBDIRS := rp-pppoe pppoatm pppol2tp
+ifeq (../Makefile.options,$(wildcard ../Makefile.options))
+include ../Makefile.options
+endif
+
+SUBDIRS := rp-pppoe pppoatm
+
+ifdef USE_L2TP
+# Uncomment the next line to include the pppol2tp plugin
+SUBDIRS += pppol2tp
+endif
+
 # Uncomment the next line to include the radius authentication plugin
 SUBDIRS += radius
-PLUGINS := minconn.so passprompt.so passwordfd.so winbind.so
+PLUGINS := minconn.so passprompt.so passwordfd.so
+
+ifdef USE_WINBIND
+# Uncomment the next line to include the windows AD authentication plugin
+PLUGINS +=winbind.so
+endif
 
 # include dependencies if present
 ifeq (.depend,$(wildcard .depend))
