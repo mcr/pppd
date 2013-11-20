@@ -473,6 +473,7 @@ struct channel {
 };
 
 extern struct channel *the_channel;
+extern struct channel *the_channel_o;
 
 /*
  * This structure contains environment variables that are set or unset
