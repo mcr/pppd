@@ -657,9 +657,10 @@ find_option(name)
 			for (opt = list->options; opt->name != NULL; ++opt)
 				if (match_option(name, opt, dowild))
 					return opt;
-		for (opt = the_channel->options; opt->name != NULL; ++opt)
-			if (match_option(name, opt, dowild))
-				return opt;
+		if(the_channel)
+			for (opt = the_channel->options; opt->name != NULL; ++opt)
+				if (match_option(name, opt, dowild))
+					return opt;
 		for (i = 0; protocols[i] != NULL; ++i)
 			if ((opt = protocols[i]->options) != NULL)
 				for (; opt->name != NULL; ++opt)
@@ -1617,6 +1618,16 @@ setmodir(argv)
 #endif
 
 #ifdef PLUGIN
+
+#define MAX_PLUGINS 16
+struct plugin_info {
+	char *path;
+	ino_t ino;
+	void *handle;
+};
+static struct plugin_info plugin_info[MAX_PLUGINS];
+static int plugin_count = 0;
+
 static int
 loadplugin(argv)
     char **argv;
@@ -1627,6 +1638,9 @@ loadplugin(argv)
     void (*init) __P((void));
     char *path = arg;
     const char *vers;
+    struct plugin_info *pi;
+    struct stat st;
+
 
     if (strchr(arg, '/') == 0) {
 	const char *base = _PATH_PLUGIN;
@@ -1637,7 +1651,33 @@ loadplugin(argv)
 	strlcpy(path, base, l);
 	strlcat(path, "/", l);
 	strlcat(path, arg, l);
+    } else {
+	path = strdup(arg);
+	if (path == 0)
+	    novm("plugin file path");
     }
+
+    if (stat(path, &st)) {
+	option_error("Couldn't find plugin %s", arg);
+	goto err;
+    }
+
+    for (pi = plugin_info; pi < (plugin_info + plugin_count); pi ++) {
+	if (st.st_ino == pi->ino)
+		break;
+	if (0 == strcmp(pi->path, path))
+		break;
+    }
+    if (pi >= (plugin_info + MAX_PLUGINS)) {
+	option_error("Attempt to load %s failed due to maximum plugin count of %u.",
+			arg, MAX_PLUGINS);
+	goto err;
+    }
+    if (pi->handle) {
+	free(path);
+	return 1;
+    }
+
     handle = dlopen(path, RTLD_GLOBAL | RTLD_NOW);
     if (handle == 0) {
 	err = dlerror();
@@ -1660,6 +1700,12 @@ loadplugin(argv)
 	goto errclose;
     }
     info("Plugin %s loaded.", arg);
+
+    pi->path = path;
+    pi->handle = handle;
+    pi->ino = st.st_ino;
+    plugin_count ++;
+
     (*init)();
     return 1;
 
