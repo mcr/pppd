@@ -311,6 +311,13 @@ struct protent *protocols[] = {
 #define PPP_DRV_NAME	"ppp"
 #endif /* !defined(PPP_DRV_NAME) */
 
+int gargc;
+char **gargv;
+jmp_buf genv;
+void check_realm(char *realm);
+static void renegotiate_options();
+int renegotiating_with_realm = 0;
+
 int
 main(argc, argv)
     int argc;
@@ -321,6 +328,10 @@ main(argc, argv)
     struct passwd *pw;
     struct protent *protp;
     char numbuf[16];
+
+    renegotiating_with_realm = 0;
+    gargc=argc;
+    gargv=argv;
 
     link_stats_valid = 0;
     new_phase(PHASE_INITIALIZE);
@@ -556,6 +567,9 @@ main(argc, argv)
 	script_unsetenv("CONNECT_TIME");
 	script_unsetenv("BYTES_SENT");
 	script_unsetenv("BYTES_RCVD");
+
+	/* renegotiate_options() continues from here */
+	setjmp(genv);
 
 	lcp_open(0);		/* Start protocol */
 	start_link(0);
@@ -2297,3 +2311,60 @@ cleanup_db()
 	    delete_db_key(p);
 }
 #endif /* USE_TDB */
+
+void check_realm(char *realm)
+{
+ int i;
+ char *cmp, *old_path, *new_path;
+
+ if(the_channel_o) the_channel = the_channel_o;
+
+ for(i = 1; i < gargc; i++) {
+  if(!strcmp(gargv[i],"file")) {
+   old_path = gargv[i + 1];
+   if(!(cmp = strstr(old_path, realm)) && cmp != old_path && --cmp != strchr(old_path, '.') &&
+    (new_path = (char *)malloc(strlen(old_path) + strlen(realm) + 2 * sizeof(char)))) {
+    sprintf(new_path, "%s.%s", old_path, realm);
+    gargv[i + 1] = new_path;
+    renegotiate_options();
+   } else {
+    return;
+   }
+  }
+ }
+}
+
+static void renegotiate_options()
+{
+ int i;
+ struct protent *protp;
+ devnam_fixed = 0;
+ new_phase(PHASE_INITIALIZE);
+ for (i = 0; i<PROTOCOLS_CNT && (protp = protocols[i]) != NULL; ++i) {
+  (*protp->init)(0);
+ }
+ if (
+#ifdef ALL_OPTIONS
+  !options_from_user() ||
+#endif
+  !parse_args(gargc-1, gargv+1))
+  exit(EXIT_OPTION_ERROR);
+ if (the_channel->process_extra_options)
+  (*the_channel->process_extra_options)();
+ check_options();
+ if (!sys_check_options())
+  exit(EXIT_OPTION_ERROR);
+ auth_check_options();
+#ifdef HAVE_MULTILINK
+ mp_check_options();
+#endif
+ for (i = 0; i<PROTOCOLS_CNT && (protp = protocols[i]) != NULL; ++i) {
+  if (protp->check_options != NULL)
+   (*protp->check_options)();
+ }
+ if (the_channel->check_options)
+  (*the_channel->check_options)();
+ devnam_fixed = 1;
+ renegotiating_with_realm = 1;
+ longjmp(genv, 0);
+}
