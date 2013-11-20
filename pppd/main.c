@@ -302,6 +302,7 @@ struct protent *protocols[] = {
     &eap_protent,
     NULL
 };
+#define PROTOCOLS_CNT (sizeof(protocols) / sizeof(*protocols))
 
 /*
  * If PPP_DRV_NAME is not defined, use the default "ppp" as the device name.
@@ -356,8 +357,9 @@ main(argc, argv)
     /*
      * Initialize each protocol.
      */
-    for (i = 0; (protp = protocols[i]) != NULL; ++i)
+    for (i = 0; i<PROTOCOLS_CNT && (protp = protocols[i]) != NULL; ++i) {
         (*protp->init)(0);
+    }
 
 #ifdef USE_SERIAL
     /*
@@ -382,7 +384,7 @@ main(argc, argv)
      * Work out the device name, if it hasn't already been specified,
      * and parse the tty's options file.
      */
-    if (the_channel->process_extra_options)
+    if (the_channel && the_channel->process_extra_options)
 	(*the_channel->process_extra_options)();
 
     if (debug)
@@ -412,10 +414,11 @@ main(argc, argv)
 #ifdef HAVE_MULTILINK
     mp_check_options();
 #endif
-    for (i = 0; (protp = protocols[i]) != NULL; ++i)
+    for (i = 0; i<PROTOCOLS_CNT && (protp = protocols[i]) != NULL; ++i) {
 	if (protp->check_options != NULL)
 	    (*protp->check_options)();
-    if (the_channel->check_options)
+    }
+    if (the_channel && the_channel->check_options)
 	(*the_channel->check_options)();
 
 
@@ -1107,7 +1110,7 @@ get_input()
     /*
      * Upcall the proper protocol input routine.
      */
-    for (i = 0; (protp = protocols[i]) != NULL; ++i) {
+    for (i = 0; i<PROTOCOLS_CNT && (protp = protocols[i]) != NULL; ++i) {
 	if (protp->protocol == protocol && protp->enabled_flag) {
 	    (*protp->input)(0, p, len);
 	    return;
