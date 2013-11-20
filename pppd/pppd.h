@@ -174,6 +174,14 @@ struct pppd_stats {
     unsigned int	bytes_out;
     unsigned int	pkts_in;
     unsigned int	pkts_out;
+
+};
+
+struct extended_pppd_stats {
+    unsigned int	prev_bytes_in;
+    unsigned int	prev_bytes_out;
+    unsigned long long	long_bytes_in;
+    unsigned long long	long_bytes_out;
 };
 
 /* Used for storing a sequence of words.  Usually malloced. */
@@ -231,6 +239,7 @@ extern int	detached;	/* Have detached from controlling tty */
 extern GIDSET_TYPE groups[NGROUPS_MAX];	/* groups the user is in */
 extern int	ngroups;	/* How many groups valid in groups */
 extern struct pppd_stats link_stats; /* byte/packet counts etc. for link */
+extern struct extended_pppd_stats extended_link_stats; /* 64-bit counting */
 extern int	link_stats_valid; /* set if link_stats is valid */
 extern unsigned	link_connect_time; /* time the link was up for */
 extern int	using_pty;	/* using pty as device (notty or pty opt.) */
