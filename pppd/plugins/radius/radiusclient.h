@@ -171,6 +171,9 @@ typedef struct pw_auth_hdr
 #define PW_ACCT_TERMINATE_CAUSE		49	/* integer */
 #define PW_ACCT_MULTI_SESSION_ID	50	/* string */
 #define PW_ACCT_LINK_COUNT		51	/* integer */
+/* RFC 2869 */
+#define PW_ACCT_INPUT_GIGAWORDS		52	/* integer */
+#define PW_ACCT_OUTPUT_GIGAWORDS	53	/* integer */
 
 /* From RFC 2869 */
 #define PW_ACCT_INTERIM_INTERVAL        85	/* integer */
@@ -292,10 +295,15 @@ typedef struct pw_auth_hdr
 #define PW_OCTETS_DIRECTION_OUT	2
 #define PW_OCTETS_DIRECTION_MAX	3
 
+/* Bandwidth bit rate limits */
+#define PW_RP_UPSTREAM_LIMIT	1
+#define PW_RP_DOWNSTREAM_LIMIT	2
+
 
 /* Vendor codes */
 #define VENDOR_NONE     (-1)
 #define VENDOR_MICROSOFT	311
+#define VENDOR_ROARING_PENGUIN	10055
 
 /* Server data structures */
 
