@@ -365,8 +365,10 @@ void sys_cleanup(void)
 void
 sys_close(void)
 {
-    if (new_style_driver && ppp_dev_fd >= 0)
+    if (new_style_driver && ppp_dev_fd >= 0) {
 	close(ppp_dev_fd);
+	ppp_dev_fd = -1;
+    }
     if (sock_fd >= 0)
 	close(sock_fd);
 #ifdef INET6
@@ -390,7 +392,7 @@ static int set_kdebugflag (int requested_level)
 	return 1;
     if (ioctl(ppp_dev_fd, PPPIOCSDEBUG, &requested_level) < 0) {
 	if ( ! ok_error (errno) )
-	    error("ioctl(PPPIOCSDEBUG): %m (line %d)", __LINE__);
+	    error("ioctl(PPPIOCSDEBUG): %m (line %d, fd=%d)", __LINE__, ppp_dev_fd);
 	return (0);
     }
     return (1);
@@ -519,7 +521,7 @@ int generic_establish_ppp (int fd)
 	if (!multilink) {
 	    add_fd(ppp_dev_fd);
 	    if (ioctl(fd, PPPIOCCONNECT, &ifunit) < 0) {
-		error("Couldn't attach to PPP unit %d: %m", ifunit);
+		error("Couldn't attach to PPP unit %d, fd=%d, ppp_dev_fd: %m", ifunit, fd, ppp_dev_fd);
 		goto err_close;
 	    }
 	}
@@ -666,7 +668,7 @@ static int make_ppp_unit()
 		x = ioctl(ppp_dev_fd, PPPIOCNEWUNIT, &ifunit);
 	}
 	if (x < 0)
-		error("Couldn't create new ppp unit: %m");
+		error("Couldn't create new ppp unit, ppp_dev_fd=%d: %m", ppp_dev_fd);
 	return x;
 }
 
@@ -681,7 +683,7 @@ void cfg_bundle(int mrru, int mtru, int rssn, int tssn)
 
 	/* set the mrru, mtu and flags */
 	if (ioctl(ppp_dev_fd, PPPIOCSMRRU, &mrru) < 0)
-		error("Couldn't set MRRU: %m");
+		error("Couldn't set MRRU, ppp_dev_fd=%d: %m", ppp_dev_fd);
 
 	modify_flags(ppp_dev_fd, SC_MP_SHORTSEQ|SC_MP_XSHORTSEQ|SC_MULTILINK,
 		     ((rssn? SC_MP_SHORTSEQ: 0) | (tssn? SC_MP_XSHORTSEQ: 0)
@@ -689,7 +691,7 @@ void cfg_bundle(int mrru, int mtru, int rssn, int tssn)
 
 	/* connect up the channel */
 	if (ioctl(ppp_fd, PPPIOCCONNECT, &ifunit) < 0)
-		fatal("Couldn't attach to PPP unit %d: %m", ifunit);
+		fatal("Couldn't attach to PPP unit %d, ppp_dev_fd=%d: %m", ifunit, ppp_dev_fd);
 	add_fd(ppp_dev_fd);
 }
 
@@ -732,7 +734,7 @@ int bundle_attach(int ifnum)
 			close(master_fd);
 			return 0;	/* doesn't still exist */
 		}
-		fatal("Couldn't attach to interface unit %d: %m\n", ifnum);
+		fatal("Couldn't attach to interface unit %d, ppp_dev_fd=%d: %m\n", ifnum, ppp_dev_fd);
 	}
 	if (ioctl(ppp_fd, PPPIOCCONNECT, &ifnum) < 0)
 		fatal("Couldn't connect to interface unit %d: %m", ifnum);
@@ -1085,9 +1087,9 @@ void output (int unit, unsigned char *p, int len)
     if (write(fd, p, len) < 0) {
 	if (errno == EWOULDBLOCK || errno == EAGAIN || errno == ENOBUFS
 	    || errno == ENXIO || errno == EIO || errno == EINTR)
-	    warn("write: warning: %m (%d)", errno);
+	    warn("write(ppp_dev_fd=%d): warning: %m (%d)", fd, errno);
 	else
-	    error("write: %m (%d)", errno);
+	    error("write(ppp_dev_fd=%d): %m (%d)", fd, errno);
     }
 }
 
@@ -1160,7 +1162,7 @@ int read_packet (unsigned char *buf)
 	nr = read(ppp_dev_fd, buf, len);
 	if (nr < 0 && errno != EWOULDBLOCK && errno != EAGAIN
 	    && errno != EIO && errno != EINTR)
-	    error("read /dev/ppp: %m");
+	    error("read(ppp_dev_fd=%d) /dev/ppp: %m", ppp_dev_fd);
 	if (nr < 0 && errno == ENXIO)
 	    nr = 0;
 	if (nr == 0 && doing_multilink) {
@@ -1306,7 +1308,7 @@ void tty_recv_config(int mru, u_int32_t asyncmap, int pcomp, int accomp)
 	}
 	if (new_style_driver && ppp_dev_fd >= 0
 	    && ioctl(ppp_dev_fd, PPPIOCSMRU, (caddr_t) &mru) < 0)
-		error("Couldn't set MRU in generic PPP layer: %m");
+		error("Couldn't set MRU in generic PPP layer, ppp_dev_fd=%d: %m", ppp_dev_fd);
 
 	if (ioctl(ppp_fd, PPPIOCSRASYNCMAP, (caddr_t) &asyncmap) < 0) {
 		if (errno != EIO && errno != ENOTTY)
@@ -1363,15 +1365,15 @@ int set_filters(struct bpf_program *pass, struct bpf_program *active)
 	fp.filter = (struct sock_filter *) pass->bf_insns;
 	if (ioctl(ppp_dev_fd, PPPIOCSPASS, &fp) < 0) {
 		if (errno == ENOTTY)
-			warn("kernel does not support PPP filtering");
+			warn("kernel does not support PPP filtering, ppp_dev_fd=%d", ppp_dev_fd);
 		else
-			error("Couldn't set pass-filter in kernel: %m");
+			error("Couldn't set pass-filter in kernel: %m, ppp_dev_fd=%d", ppp_dev_fd);
 		return 0;
 	}
 	fp.len = active->bf_len;
 	fp.filter = (struct sock_filter *) active->bf_insns;
 	if (ioctl(ppp_dev_fd, PPPIOCSACTIVE, &fp) < 0) {
-		error("Couldn't set active-filter in kernel: %m");
+		error("Couldn't set active-filter in kernel, ppp_dev_fd=%d: %m", ppp_dev_fd);
 		return 0;
 	}
 	return 1;
@@ -2271,8 +2273,8 @@ int sifvjcomp (int u, int vjcomp, int cidcomp, int maxcid)
 	u_int x;
 
 	if (vjcomp) {
-		if (ioctl(ppp_dev_fd, PPPIOCSMAXCID, (caddr_t) &maxcid) < 0) {
-			error("Couldn't set up TCP header compression: %m");
+		if (ioctl (ppp_dev_fd, PPPIOCSMAXCID, (caddr_t) &maxcid) < 0) {
+			error("ioctl(ppp_dev_fd=%d, PPPIOCSMAXCID): %m (line %d)", ppp_dev_fd, __LINE__);
 			vjcomp = 0;
 		}
 	}
@@ -2734,7 +2736,7 @@ sifnpmode(u, proto, mode)
     npi.mode     = mode;
     if (ioctl(ppp_dev_fd, PPPIOCSNPMODE, (caddr_t) &npi) < 0) {
 	if (! ok_error (errno))
-	    error("ioctl(PPPIOCSNPMODE, %d, %d): %m", proto, mode);
+	    error("ioctl(ppp_dev_fd=%d, PPPIOCSNPMODE, %d, %d): %m", ppp_dev_fd, proto, mode);
 	return 0;
     }
     return 1;
