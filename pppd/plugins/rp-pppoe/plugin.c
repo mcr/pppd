@@ -107,6 +107,8 @@ PPPOEInitDevice(void)
 	novm("PPPoE session data");
     }
     memset(conn, 0, sizeof(PPPoEConnection));
+    conn->acName = acName;
+    conn->serviceName = pppd_pppoe_service;
     conn->ifName = devnam;
     conn->discoverySocket = -1;
     conn->sessionSocket = -1;
@@ -239,6 +241,31 @@ PPPOEConnectDevice(void)
 }
 
 static void
+PPPOESendConfig(int mtu,
+		u_int32_t asyncmap,
+		int pcomp,
+		int accomp)
+{
+    int sock;
+    struct ifreq ifr;
+
+    if (mtu > MAX_PPPOE_MTU) {
+	/* warn("Couldn't increase MTU to %d", mtu); */
+	mtu = MAX_PPPOE_MTU;
+    }
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) {
+	fatal("Couldn't create IP socket: %m");
+    }
+    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+    ifr.ifr_mtu = mtu;
+    if (ioctl(sock, SIOCSIFMTU, &ifr) < 0) {
+	fatal("ioctl(SIOCSIFMTU): %m");
+    }
+    return -1;
+}
+
+static void
 PPPOERecvConfig(int mru,
 		u_int32_t asyncmap,
 		int pcomp,
@@ -317,6 +344,9 @@ PPPoEDevnameHook(char *cmd, char **argv, int doit)
     if (strlen(cmd) > 4 && !strncmp(cmd, "nic-", 4)) {
 	/* Strip off "nic-" */
 	cmd += 4;
+    } else if (strlen(cmd) < 4 || (strncmp(cmd, "eth", 3) && strncmp(cmd, "nas", 3) && strncmp(cmd, "hdlc", 4))) {
+	if (OldDevnameHook) return OldDevnameHook(cmd, argv, doit);
+	return 0;
     }
 
     /* Open a socket */
