@@ -677,6 +677,10 @@ radius_setparams(VALUE_PAIR *vp, char *msg, REQUEST_INFO *req_info,
             case PW_NAS_IP_ADDRESS:
                 wo->ouraddr = htonl(vp->lvalue);
                 break;
+	    case PW_FRAMED_IP_NETMASK:
+		/* setting up remote network mask */
+		netmask = vp->lvalue;
+		break;
 	    case PW_CLASS:
 		/* Save Class attribute to pass it in accounting request */
 		if (vp->lvalue <= MAXCLASSLEN) {
@@ -987,6 +991,9 @@ radius_acct_start(void)
     av_type = htonl(hisaddr);
     rc_avpair_add(&send, PW_FRAMED_IP_ADDRESS , &av_type , 0, VENDOR_NONE);
 
+    av_type = htonl(netmask);
+    rc_avpair_add(&send, PW_FRAMED_IP_NETMASK, &av_type , 0, VENDOR_NONE);
+
     /* Add user specified vp's */
     if (rstate.avp)
 	rc_avpair_insert(&send, NULL, rc_avpair_copy(rstate.avp));
@@ -1168,6 +1175,9 @@ radius_acct_stop(void)
     av_type = htonl(hisaddr);
     rc_avpair_add(&send, PW_FRAMED_IP_ADDRESS , &av_type , 0, VENDOR_NONE);
 
+    av_type = htonl(netmask);
+    rc_avpair_add(&send, PW_FRAMED_IP_NETMASK, &av_type , 0, VENDOR_NONE);
+
     /* Add user specified vp's */
     if (rstate.avp)
 	rc_avpair_insert(&send, NULL, rc_avpair_copy(rstate.avp));
@@ -1280,6 +1290,9 @@ radius_acct_interim(void *ignored)
     hisaddr = ho->hisaddr;
     av_type = htonl(hisaddr);
     rc_avpair_add(&send, PW_FRAMED_IP_ADDRESS , &av_type , 0, VENDOR_NONE);
+
+    av_type = htonl(netmask);
+    rc_avpair_add(&send, PW_FRAMED_IP_NETMASK, &av_type , 0, VENDOR_NONE);
 
     /* Add user specified vp's */
     if (rstate.avp)
