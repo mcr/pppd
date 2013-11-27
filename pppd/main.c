@@ -301,7 +301,9 @@ struct protent *protocols[] = {
 #ifdef AT_CHANGE
     &atcp_protent,
 #endif
+#ifdef USE_EAP
     &eap_protent,
+#endif
     NULL
 };
 #define PROTOCOLS_CNT (sizeof(protocols) / sizeof(*protocols))
