@@ -62,6 +62,7 @@
 typedef struct upap_state {
     int us_unit;		/* Interface unit number */
     char *us_user;		/* User */
+    int  us_pap_interval;       /* Time interval for re-auth for PAP*/
     int us_userlen;		/* User length */
     char *us_passwd;		/* Password */
     int us_passwdlen;		/* Password length */
@@ -101,6 +102,7 @@ typedef struct upap_state {
  */
 #define UPAP_DEFTIMEOUT	3	/* Timeout (seconds) for retransmitting req */
 #define UPAP_DEFREQTIME	30	/* Time to wait for auth-req from peer */
+#define UPAP_DEFKILLTIME 30
 
 extern upap_state upap[];
 

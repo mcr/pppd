@@ -71,7 +71,8 @@ static option_t pap_option_list[] = {
       "Set max number of transmissions for auth-reqs", OPT_PRIO },
     { "pap-timeout", o_int, &upap[0].us_reqtimeout,
       "Set time limit for peer PAP authentication", OPT_PRIO },
-
+    { "pap-interval", o_int, &upap[0].us_pap_interval,
+      "Set interval for repap", OPT_PRIO },
     { NULL }
 };
 
@@ -136,6 +137,7 @@ upap_init(unit)
     u->us_id = 0;
     u->us_timeouttime = UPAP_DEFTIMEOUT;
     u->us_maxtransmits = 10;
+    u->us_pap_interval = 0;
     u->us_reqtimeout = UPAP_DEFREQTIME;
 }
 
@@ -275,6 +277,10 @@ upap_lowerdown(unit)
 
     if (u->us_clientstate == UPAPCS_AUTHREQ)	/* Timeout pending? */
 	UNTIMEOUT(upap_timeout, u);		/* Cancel timeout */
+    else if (u->us_serverstate == UPAPSS_OPEN
+             && u->us_pap_interval != 0)
+      UNTIMEOUT(papreauth , u);
+
     if (u->us_serverstate == UPAPSS_LISTEN && u->us_reqtimeout > 0)
 	UNTIMEOUT(upap_reqtimeout, u);
 
@@ -451,6 +457,11 @@ upap_rauthreq(u, inp, id, len)
 	u->us_serverstate = UPAPSS_OPEN;
 	notice("PAP peer authentication succeeded for %q", rhostname);
 	auth_peer_success(u->us_unit, PPP_PAP, 0, ruser, ruserlen);
+
+        if (u->us_pap_interval != 0){
+            TIMEOUT(papreauth, u, u->us_pap_interval);
+        }
+
     } else {
 	u->us_serverstate = UPAPSS_BADAUTH;
 	warn("PAP peer authentication failed for %q", rhostname);
@@ -458,7 +469,7 @@ upap_rauthreq(u, inp, id, len)
     }
 
     if (u->us_reqtimeout > 0)
-	UNTIMEOUT(upap_reqtimeout, u);
+      UNTIMEOUT(upap_reqtimeout, u);
 }
 
 
