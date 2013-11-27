@@ -1,7 +1,7 @@
 /*
  * System-dependent procedures for pppd under Solaris 2.
  *
- * Parts re-written by Adi Masputra <adi.masputra@sun.com>, based on 
+ * Parts re-written by Adi Masputra <adi.masputra@sun.com>, based on
  * the original sys-svr4.c
  *
  * Copyright (c) 2000 by Sun Microsystems, Inc.
@@ -9,7 +9,7 @@
  *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation is hereby granted, provided that the above copyright
- * notice appears in all copies.  
+ * notice appears in all copies.
  *
  * SUN MAKES NO REPRESENTATION OR WARRANTIES ABOUT THE SUITABILITY OF
  * THE SOFTWARE, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
@@ -281,7 +281,7 @@ sifppa(fd, ppa)
 
 #if defined(SOL2) && defined(INET6)
 /*
- * get_first_ethernet - returns the first Ethernet interface name found in 
+ * get_first_ethernet - returns the first Ethernet interface name found in
  * the system, or NULL if none is found
  *
  * NOTE: This is the lifreq version (Solaris 8 and above)
@@ -375,10 +375,10 @@ get_first_ethernet()
 }
 #else
 /*
- * get_first_ethernet - returns the first Ethernet interface name found in 
+ * get_first_ethernet - returns the first Ethernet interface name found in
  * the system, or NULL if none is found
  *
- * NOTE: This is the ifreq version (before Solaris 8). 
+ * NOTE: This is the ifreq version (before Solaris 8).
  */
 char *
 get_first_ethernet()
@@ -541,7 +541,7 @@ ether_to_eui64(eui64_t *p_eui64)
 	error("no persistent id can be found");
 	return 0;
     }
- 
+
     /*
      * Send DL_INFO_REQ to the driver to solicit its MAC address
      */
@@ -667,7 +667,7 @@ sys_init()
 
 #if defined(INET6)
     /*
-     * An IPv6 interface is created anyway, even when the user does not 
+     * An IPv6 interface is created anyway, even when the user does not
      * explicitly enable it. Note that the interface will be marked
      * IPv6 during slifname().
      */
@@ -704,9 +704,9 @@ sys_init()
 
     /*
      * In Sol 8 and later, STREAMS dynamic module plumbing feature exists.
-     * This is so that an arbitrary module can be inserted, or deleted, 
-     * between ip module and the device driver without tearing down the 
-     * existing stream. Such feature requires the mux ids, which is set 
+     * This is so that an arbitrary module can be inserted, or deleted,
+     * between ip module and the device driver without tearing down the
+     * existing stream. Such feature requires the mux ids, which is set
      * by SIOCSIFMUXID (or SIOCLSIFMUXID).
      */
     if (ioctl(ipfd, SIOCSIFMUXID, &ifr) < 0) {
@@ -807,7 +807,7 @@ sys_cleanup()
     }
 
     ipmuxid = ifr.ifr_ip_muxid;
-     
+
     if (ioctl(ipfd, I_PUNLINK, ipmuxid) < 0) {
 	error("Can't I_PUNLINK PPP from IP: %m");
 	return;
@@ -954,7 +954,7 @@ tty_establish_ppp(fd)
      * There's no need to push comp module if we don't intend
      * to compress anything
      */
-    if (any_compressions()) { 
+    if (any_compressions()) {
         if (ioctl(fd, I_PUSH, COMP_MOD_NAME) < 0)
 	    error("Couldn't push PPP compression module: %m");
 	else
@@ -962,7 +962,7 @@ tty_establish_ppp(fd)
     }
 
     if (kdebugflag & 2) {
-	i = PPPDBG_LOG; 
+	i = PPPDBG_LOG;
 	if (any_compressions())
 	    i += PPPDBG_COMP;
 	strioctl(pppfd, PPPIO_DEBUG, &i, sizeof(int), 0);
@@ -1515,7 +1515,7 @@ netif_set_mtu(unit, mtu)
 	error("Couldn't set IP MTU (%s): %m", ifr.ifr_name);
     }
 
-#if defined(INET6) && defined(SOL2) 
+#if defined(INET6) && defined(SOL2)
     fd = socket(AF_INET6, SOCK_DGRAM, 0);
     if (fd < 0)
 	error("Couldn't open IPv6 socket: %m");
@@ -1667,7 +1667,7 @@ get_ppp_stats(u, stats)
 {
     struct ppp_stats s;
 
-    if (!sync_serial && 
+    if (!sync_serial &&
 	strioctl(pppfd, PPPIO_GETSTAT, &s, 0, sizeof(s)) < 0) {
 	error("Couldn't get link statistics: %m");
 	return 0;

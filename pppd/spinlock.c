@@ -1,14 +1,14 @@
-/* 
+/*
    Unix SMB/CIFS implementation.
 
-   trivial database library 
+   trivial database library
 
    Copyright (C) Anton Blanchard                   2001
-   
+
      ** NOTE! The following LGPL license applies to the tdb
      ** library. This does NOT imply that all of Samba is released
      ** under the LGPL
-   
+
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
    License as published by the Free Software Foundation; either
@@ -18,7 +18,7 @@
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Lesser General Public License for more details.
-   
+
    You should have received a copy of the GNU Lesser General Public
    License along with this library; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -73,7 +73,7 @@ static inline int __spin_is_locked(spinlock_t *lock)
 	return (*lock != 0);
 }
 
-#elif defined(POWERPC_SPINLOCKS) 
+#elif defined(POWERPC_SPINLOCKS)
 
 static inline int __spin_trylock(spinlock_t *lock)
 {
@@ -111,7 +111,7 @@ static inline int __spin_is_locked(spinlock_t *lock)
 	return (*lock != 0);
 }
 
-#elif defined(INTEL_SPINLOCKS) 
+#elif defined(INTEL_SPINLOCKS)
 
 static inline int __spin_trylock(spinlock_t *lock)
 {
@@ -182,7 +182,7 @@ static inline int __spin_is_locked(spinlock_t *lock)
 	return val;
 }
 
-#elif defined(MIPS_SPINLOCKS) 
+#elif defined(MIPS_SPINLOCKS)
 
 static inline unsigned int load_linked(unsigned long addr)
 {
@@ -211,7 +211,7 @@ static inline int __spin_trylock(spinlock_t *lock)
 
 	do {
 		mw = load_linked(lock);
-		if (mw) 
+		if (mw)
 			return EBUSY;
 	} while (!store_conditional(lock, 1));
 
@@ -298,7 +298,7 @@ static void __read_lock(tdb_rwlock_t *rwlock)
 			__spin_unlock(&rwlock->lock);
 			return;
 		}
-	
+
 		__spin_unlock(&rwlock->lock);
 
 		while(rwlock->count & RWLOCK_BIAS) {
@@ -465,7 +465,7 @@ int tdb_clear_spinlocks(TDB_CONTEXT *tdb)
 	tdb->header.rwlocks = 0;
 	if (lseek(tdb->fd, off, SEEK_SET) != off
 	    || write(tdb->fd, (void *)&tdb->header.rwlocks,
-		     sizeof(tdb->header.rwlocks)) 
+		     sizeof(tdb->header.rwlocks))
 	    != sizeof(tdb->header.rwlocks))
 		return -1;
 	return 0;

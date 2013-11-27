@@ -324,7 +324,7 @@ setdevname(cp, argv, doit)
 		devstat = statbuf;
 		default_device = 0;
 	}
-  
+
 	return 1;
 }
 

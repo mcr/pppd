@@ -5,7 +5,7 @@
 .\" LP paragraph
 .\" IP indented paragraph
 .\" TP hanging label
-.\" 
+.\"
 .\" Copyright (c) 1993-2003 Paul Mackerras <paulus@samba.org>
 .\"
 .\" Permission to use, copy, modify, and distribute this software for any
@@ -169,7 +169,7 @@ Note that for the IPv6 protocol, the MRU must be at least 1280.
 Set the MTU [Maximum Transmit Unit] value to \fIn\fR.  Unless the
 peer requests a smaller value via MRU negotiation, pppd will
 request that the kernel networking code send data packets of no more
-than \fIn\fR bytes through the PPP network interface.  Note that for 
+than \fIn\fR bytes through the PPP network interface.  Note that for
 the IPv6 protocol, the MTU must be at least 1280.
 .TP
 .B passive
@@ -204,7 +204,7 @@ IPv6 addresses (e.g. ::dead:beef). If the
 option is given, the local identifier is the local IPv4 address (see above).
 On systems which supports a unique persistent id, such as EUI\-48 derived
 from the Ethernet MAC address, \fIipv6cp\-use\-persistent\fR option can be
-used to replace the \fIipv6 <local>,<remote>\fR option. Otherwise the 
+used to replace the \fIipv6 <local>,<remote>\fR option. Otherwise the
 identifier is randomized.
 .TP
 .B active\-filter \fIfilter\-expression
@@ -657,7 +657,7 @@ option.  This option is currently only available under Linux.
 .TP
 .B mppe\-stateful
 Allow MPPE to use stateful mode.  Stateless mode is still attempted first.
-The default is to disallow stateful mode.  
+The default is to disallow stateful mode.
 .TP
 .B mpshortseq
 Enables the use of short (12-bit) sequence numbers in multilink
@@ -1694,7 +1694,7 @@ invoked in the same manner and with the same parameters as the ip\-up
 script.
 .TP
 .B /etc/ppp/ipv6\-up
-Like /etc/ppp/ip\-up, except that it is executed when the link is available 
+Like /etc/ppp/ip\-up, except that it is executed when the link is available
 for sending and receiving IPv6 packets. It is executed with the parameters
 .IP
 \fIinterface\-name tty\-device speed local\-link\-local\-address
@@ -1702,7 +1702,7 @@ remote\-link\-local\-address ipparam\fR
 .TP
 .B /etc/ppp/ipv6\-down
 Similar to /etc/ppp/ip\-down, but it is executed when IPv6 packets can no
-longer be transmitted on the link. It is executed with the same parameters 
+longer be transmitted on the link. It is executed with the same parameters
 as the ipv6\-up script.
 .TP
 .B /etc/ppp/ipx\-up
@@ -1712,7 +1712,7 @@ executed with the parameters
 .IP
 \fIinterface\-name tty\-device speed network\-number local\-IPX\-node\-address
 remote\-IPX\-node\-address local\-IPX\-routing\-protocol remote\-IPX\-routing\-protocol
-local\-IPX\-router\-name remote\-IPX\-router\-name ipparam pppd\-pid\fR 
+local\-IPX\-router\-name remote\-IPX\-router\-name ipparam pppd\-pid\fR
 .IP
 The local\-IPX\-routing\-protocol and remote\-IPX\-routing\-protocol field
 may be one of the following:
