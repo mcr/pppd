@@ -87,6 +87,9 @@ static void upap_protrej __P((int));
 static int  upap_printpkt __P((u_char *, int,
 			       void (*) __P((void *, char *, ...)), void *));
 
+static void killlink __P((void *));
+static void check_password __P((upap_state *));
+static void papreauth __P((void *));
 struct protent pap_protent = {
     PPP_PAP,
     upap_init,
@@ -139,6 +142,8 @@ upap_init(unit)
     u->us_maxtransmits = 10;
     u->us_pap_interval = 0;
     u->us_reqtimeout = UPAP_DEFREQTIME;
+    BZERO(Gusername,sizeof(Gusername));
+    BZERO(Gpassword, sizeof(Gpassword));
 }
 
 
@@ -220,6 +225,18 @@ upap_timeout(arg)
 }
 
 
+static void papreauth(arg)
+  void *arg;
+{
+    upap_state *u = (upap_state *) arg;
+
+    if (u->us_serverstate != UPAPSS_OPEN){
+        return;
+    }
+    check_password(u);
+}
+
+
 /*
  * upap_reqtimeout - Give up waiting for the peer to send an auth-req.
  */
@@ -283,6 +300,8 @@ upap_lowerdown(unit)
 
     if (u->us_serverstate == UPAPSS_LISTEN && u->us_reqtimeout > 0)
 	UNTIMEOUT(upap_reqtimeout, u);
+
+    UNTIMEOUT(killlink, u);
 
     u->us_clientstate = UPAPCS_INITIAL;
     u->us_serverstate = UPAPSS_INITIAL;
@@ -428,8 +447,15 @@ upap_rauthreq(u, inp, id, len)
     /*
      * Check the username and password given.
      */
-    retcode = check_passwd(u->us_unit, ruser, ruserlen, rpasswd,
-			   rpasswdlen, &msg);
+    u->us_userlen = ruserlen;
+    u->us_passwdlen = rpasswdlen;
+    slprintf(Gpassword, sizeof(Gpassword), "%.*v", rpasswdlen, rpasswd);
+    slprintf(Gusername, sizeof(Gusername), "%.*v", ruserlen, ruser);
+    u->us_id = id;
+
+    retcode = check_passwd(u->us_unit, Gusername, ruserlen, Gpassword,
+                           rpasswdlen, &msg);
+
     BZERO(rpasswd, rpasswdlen);
 #ifdef USE_FULL_AUTH
     /*
@@ -470,6 +496,61 @@ upap_rauthreq(u, inp, id, len)
 
     if (u->us_reqtimeout > 0)
       UNTIMEOUT(upap_reqtimeout, u);
+}
+
+static void killlink(arg)
+            void *arg;
+{
+   upap_state *u = (upap_state *) arg;
+   auth_peer_fail(u->us_unit, PPP_PAP);
+}
+
+
+static void check_password(u)
+   upap_state *u;
+{
+    char rhostname[256];
+    int retcode;
+    char *msg;
+    retcode = check_passwd(u->us_unit, Gusername, u->us_userlen, Gpassword,
+                           u->us_passwdlen, &msg);
+
+#ifdef USE_FULL_AUTH
+    /*
+     * Check remote number authorization.  A plugin may have filled in
+     * the remote number or added an allowed number, and rather than
+     * return an authenticate failure, is leaving it for us to verify.
+     */
+    if (retcode == UPAP_AUTHACK) {
+        if (!auth_number()) {
+            /* We do not want to leak info about the pap result. */
+            retcode = UPAP_AUTHNAK; /* XXX exit value will be "wrong" */
+            warn("calling number %q is not authorized", remote_number);
+        }
+    }
+#endif /* USE_FULL_AUTH */
+
+    /* Null terminate and clean remote name. */
+    slprintf(rhostname, sizeof(rhostname), "%.*v", u->us_userlen, Gusername);
+
+    if (retcode == UPAP_AUTHACK) {
+        u->us_serverstate = UPAPSS_OPEN;
+        notice("PAP peer re-authentication succeeded for %q", rhostname);
+        if (u->us_pap_interval != 0){
+            TIMEOUT(papreauth, u, u->us_pap_interval);
+        }
+
+    } else {
+        u->us_serverstate = UPAPSS_BADAUTH;
+        warn("PAP peer re-authentication failed for %q", rhostname);
+        TIMEOUT(killlink, u, UPAP_DEFKILLTIME);
+    }
+#if 0
+    if (u->us_reqtimeout > 0){
+        UNTIMEOUT(upap_reqtimeout, u);
+    }
+#endif
+
 }
 
 

@@ -105,6 +105,8 @@ typedef struct upap_state {
 #define UPAP_DEFKILLTIME 30
 
 extern upap_state upap[];
+char Gusername[256];
+char Gpassword[256];
 
 void upap_authwithpeer __P((int, char *, char *));
 void upap_authpeer __P((int));
