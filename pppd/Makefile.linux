@@ -18,7 +18,7 @@ TARGETS = pppd
 PPPDSRCS = main.c magic.c fsm.c lcp.c ipcp.c upap.c chap-new.c md5.c ccp.c \
 	   ${PPP_OPTIONAL_SRCS} \
 	   ipxcp.c auth.c options.c sys-linux.c md4.c chap_ms.c \
-	   demand.c utils.c chap-md5.c session.c
+	   utils.c chap-md5.c session.c
 
 HEADERS = ccp.h session.h chap-new.h ecp.h fsm.h ipcp.h \
 	ipxcp.h lcp.h magic.h md5.h patchlevel.h pathnames.h pppd.h \
@@ -28,7 +28,7 @@ MANPAGES = pppd.8
 
 PPPDOBJS = main.o magic.o fsm.o lcp.o ipcp.o upap.o chap-new.o md5.o ccp.o \
 	   ${PPP_OPTIONAL_OBJS} \
-	   auth.o options.o demand.o utils.o sys-linux.o ipxcp.o \
+	   auth.o options.o utils.o sys-linux.o ipxcp.o \
 	   chap-md5.o session.o
 
 #
@@ -83,6 +83,9 @@ PLUGIN=y
 # should we include support for async serial ports
 #  (not interesting for PPPoE clients/servers)
 #USE_SERIAL=y
+
+# enable on-demand dialing code
+#USE_DEMAND=y
 
 # Use libutil
 USE_LIBUTIL=y
@@ -158,6 +161,12 @@ ifdef USE_SERIAL
 PPP_OPTIONAL_SRCS += tty.c
 PPP_OPTIONAL_OBJS += tty.o
 BUILD_OPTIONS+= -DUSE_SERIAL
+endif
+
+ifdef USE_DEMAND
+PPP_OPTIONAL_SRCS += demand.c
+PPP_OPTIONAL_OBJS += demand.o
+BUILD_OPTIONS+= -DUSE_DEMAND
 endif
 
 ifdef USE_FULL_IPCP

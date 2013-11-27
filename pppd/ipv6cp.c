@@ -1218,6 +1218,7 @@ ipv6cp_up(f)
     sif6comp(f->unit, ho->neg_vj);
 #endif
 
+#ifdef USE_DEMAND
     /*
      * If we are doing dial-on-demand, the interface is already
      * configured, so we put out any saved-up packets, then set the
@@ -1245,8 +1246,10 @@ ipv6cp_up(f)
 	}
 	demand_rexmit(PPP_IPV6);
 	sifnpmode(f->unit, PPP_IPV6, NPMODE_PASS);
-
-    } else {
+    }
+    else
+#endif
+      {
 	/*
 	 * Set LL addresses
 	 */

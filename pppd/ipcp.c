@@ -257,7 +257,9 @@ static void ipcp_protrej __P((int));
 static int  ipcp_printpkt __P((u_char *, int,
 			       void (*) __P((void *, char *, ...)), void *));
 static void ip_check_options __P((void));
+#ifdef USE_DEMAND
 static int  ip_demand_conf __P((int));
+#endif
 static int  ip_active_pkt __P((u_char *, int));
 static void create_resolv __P((u_int32_t, u_int32_t));
 
@@ -277,7 +279,11 @@ struct protent ipcp_protent = {
     "IP",
     ipcp_option_list,
     ip_check_options,
+#ifdef USE_DEMAND
     ip_demand_conf,
+#else
+    NULL,
+#endif
     ip_active_pkt
 };
 
@@ -1735,7 +1741,7 @@ ip_check_options()
     ask_for_local = wo->ouraddr != 0 || !disable_defaultip;
 }
 
-
+#ifdef USE_DEMAND
 /*
  * ip_demand_conf - configure the interface as though
  * IPCP were up, for use with dial-on-demand.
@@ -1777,7 +1783,7 @@ ip_demand_conf(u)
 
     return 1;
 }
-
+#endif
 
 /*
  * ipcp_up - IPCP has come UP.
@@ -1853,6 +1859,7 @@ ipcp_up(f)
      * configured, so we put out any saved-up packets, then set the
      * interface to pass IP packets.
      */
+#ifdef USE_DEMAND
     if (demand) {
 	if (go->ouraddr != wo->ouraddr || ho->hisaddr != wo->hisaddr) {
 	    ipcp_clear_addrs(f->unit, wo->ouraddr, wo->hisaddr);
@@ -1892,7 +1899,9 @@ ipcp_up(f)
 	demand_rexmit(PPP_IP);
 	sifnpmode(f->unit, PPP_IP, NPMODE_PASS);
 
-    } else {
+    } else
+#endif
+    {
 	/*
 	 * Set IP addresses and (if specified) netmask.
 	 */
@@ -2002,9 +2011,12 @@ ipcp_down(f)
      * If we are doing dial-on-demand, set the interface
      * to queue up outgoing packets (for now).
      */
+#ifdef USE_DEMAND
     if (demand) {
 	sifnpmode(f->unit, PPP_IP, NPMODE_QUEUE);
-    } else {
+    } else
+#endif
+    {
 	sifnpmode(f->unit, PPP_IP, NPMODE_DROP);
 	sifdown(f->unit);
 	ipcp_clear_addrs(f->unit, ipcp_gotoptions[f->unit].ouraddr,

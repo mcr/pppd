@@ -205,8 +205,10 @@ static struct termios inittermios;	/* Initial TTY termios */
 
 int new_style_driver = 0;
 
+#ifdef USE_DEMAND
 static char loop_name[20];
 static unsigned char inbuf[512]; /* buffer for chars read from loopback */
+#endif
 
 static int	if_is_up;	/* Interface has been marked up */
 static int	have_default_route;	/* Gateway for default route added */
@@ -1171,6 +1173,7 @@ int read_packet (unsigned char *buf)
     return (new_style_driver && nr > 0)? nr+2: nr;
 }
 
+#ifdef USE_DEMAND
 /********************************************************************
  *
  * get_loop_output - get outgoing packets from the ppp device,
@@ -1202,6 +1205,8 @@ get_loop_output(void)
 
     return rv;
 }
+#endif
+
 
 /*
  * netif_set_mtu - set the MTU on the PPP network interface.
@@ -2659,6 +2664,7 @@ get_pty(master_fdp, slave_fdp, slave_name, uid)
     return 1;
 }
 
+#ifdef USE_DEMAND
 /********************************************************************
  *
  * open_loopback - open the device we use for getting packets
@@ -2709,6 +2715,7 @@ open_ppp_loopback(void)
 
     return master_fd;
 }
+#endif
 
 /********************************************************************
  *

@@ -157,9 +157,8 @@ int baud_rate;		        /* Actual bits/second for serial/network device */
 
 #ifdef USE_TDB
 TDB_CONTEXT *pppdb;		/* database for storing status etc. */
-#endif
-
 char db_key[32];
+#endif
 
 int (*holdoff_hook) __P((void)) = NULL;
 int (*new_phase_hook) __P((int)) = NULL;
@@ -167,7 +166,9 @@ void (*snoop_recv_hook) __P((unsigned char *p, int len)) = NULL;
 void (*snoop_send_hook) __P((unsigned char *p, int len)) = NULL;
 
 static int conn_running;	/* we have a [dis]connector running */
+#ifdef USE_DEMAND
 static int fd_loop;		/* fd for getting demand-dial packets */
+#endif
 
 int fd_devnull;			/* fd for /dev/null */
 int devfd = -1;			/* fd of underlying device */
@@ -522,6 +523,7 @@ main(argc, argv)
 
     waiting = 0;
 
+#ifdef USE_DEMAND
     /*
      * If we're doing dial-on-demand, set up the interface now.
      */
@@ -536,6 +538,7 @@ main(argc, argv)
 	 */
 	demand_conf();
     }
+#endif /* USE_DEMAND */
 
     do_callback = 0;
     for (;;) {
@@ -550,6 +553,7 @@ main(argc, argv)
 	doing_callback = do_callback;
 	do_callback = 0;
 
+#ifdef USE_DEMAND
 	if (demand && !doing_callback) {
 	    /*
 	     * Don't do anything until we see some activity.
@@ -574,6 +578,8 @@ main(argc, argv)
 	    demand_block();
 	    info("Starting link");
 	}
+#endif /* USE_DEMAND */
+
 
 	gettimeofday(&start_time, NULL);
 	script_unsetenv("CONNECT_TIME");
@@ -608,8 +614,10 @@ main(argc, argv)
 	if (!persist || asked_to_quit || (maxfail > 0 && unsuccess >= maxfail))
 	    break;
 
+#ifdef USE_DEMAND
 	if (demand)
 	    demand_discard();
+#endif
 	t = need_holdoff? holdoff: 0;
 	if (holdoff_hook)
 	    t = (*holdoff_hook)();
