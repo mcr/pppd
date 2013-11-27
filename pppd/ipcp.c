@@ -2070,7 +2070,11 @@ ipcp_script(script, wait)
     char strspeed[32], strlocal[32], strremote[32];
     char *argv[8];
 
+#ifdef USE_SERIAL
     slprintf(strspeed, sizeof(strspeed), "%d", baud_rate);
+#else
+    strspeed[0] = '\0';
+#endif
     slprintf(strlocal, sizeof(strlocal), "%I", ipcp_gotoptions[0].ouraddr);
     slprintf(strremote, sizeof(strremote), "%I", ipcp_hisoptions[0].hisaddr);
 

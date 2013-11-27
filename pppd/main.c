@@ -153,6 +153,7 @@ int doing_callback;		/* != 0 if we are doing callback */
 int ppp_session_number;		/* Session number, for channels with such a
 				   concept (eg PPPoE) */
 int childwait_done;		/* have timed out waiting for children */
+int baud_rate;		        /* Actual bits/second for serial/network device */
 
 #ifdef USE_TDB
 TDB_CONTEXT *pppdb;		/* database for storing status etc. */
@@ -358,10 +359,12 @@ main(argc, argv)
     for (i = 0; (protp = protocols[i]) != NULL; ++i)
         (*protp->init)(0);
 
+#ifdef USE_SERIAL
     /*
      * Initialize the default channel.
      */
     tty_init();
+#endif /* USE_SERIAL */
 
     progname = *argv;
 
@@ -1706,12 +1709,13 @@ remove_script_env(pos)
 	pos++;
 }
 
+#ifdef USE_SERIAL
 /*
  * update_system_environment - process the list of set/unset options
  * and update the system environment.
  */
 static void
-update_system_environment()
+update_system_environment(void)
 {
     struct userenv *uep;
 
@@ -1784,6 +1788,7 @@ device_script(program, in, out, dont_wait)
     _exit(99);
     /* NOTREACHED */
 }
+#endif /* USE_SERIAL */
 
 
 /*

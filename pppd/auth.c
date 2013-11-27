@@ -669,7 +669,9 @@ link_terminated(unit)
      */
     if (fd_ppp >= 0) {
 	remove_fd(fd_ppp);
+#ifdef USE_SERIAL
 	clean_check();
+#endif
 	the_channel->disestablish_ppp(devfd);
 	if (doing_multilink)
 	    mp_exit_bundle();
@@ -812,20 +814,26 @@ link_established(unit)
 
     new_phase(PHASE_AUTHENTICATE);
     auth = 0;
+#ifdef USE_EAP
     if (go->neg_eap) {
 	eap_authpeer(unit, our_name);
 	auth |= EAP_PEER;
-    } else if (go->neg_chap) {
+    } else
+#endif
+    if (go->neg_chap) {
 	chap_auth_peer(unit, our_name, CHAP_DIGEST(go->chap_mdtype));
 	auth |= CHAP_PEER;
     } else if (go->neg_upap) {
 	upap_authpeer(unit);
 	auth |= PAP_PEER;
     }
+#ifdef USE_EAP
     if (ho->neg_eap) {
 	eap_authwithpeer(unit, user);
 	auth |= EAP_WITHPEER;
-    } else if (ho->neg_chap) {
+    }
+#endif
+    else if (ho->neg_chap) {
 	chap_auth_with_peer(unit, user, CHAP_DIGEST(ho->chap_mdtype));
 	auth |= CHAP_WITHPEER;
     } else if (ho->neg_upap) {
@@ -2431,8 +2439,11 @@ auth_script(script)
 	slprintf(struid, sizeof(struid), "%d", getuid());
 	user_name = struid;
     }
+#ifdef USE_SERIAL
     slprintf(strspeed, sizeof(strspeed), "%d", baud_rate);
-
+#else
+    strspeed[0] = '\0';
+#endif
     argv[0] = script;
     argv[1] = ifname;
     argv[2] = peer_authname;

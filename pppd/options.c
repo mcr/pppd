@@ -505,6 +505,7 @@ options_from_user()
     return ret;
 }
 
+#ifdef USE_SERIAL
 /*
  * options_for_tty - See if an options file exists for the serial
  * device, and if so, interpret options from it.
@@ -539,6 +540,7 @@ options_for_tty()
     free(path);
     return ret;
 }
+#endif /* USE_SERIAL */
 
 #ifdef USE_FULL_AUTH
 /*

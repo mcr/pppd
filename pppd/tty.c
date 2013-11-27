@@ -128,7 +128,7 @@ static int ttyfd;		/* Serial port file descriptor */
 static char speed_str[16];	/* Serial port speed as string */
 
 mode_t tty_mode = (mode_t)-1;	/* Original access permissions to tty */
-int baud_rate;			/* Actual bits/second for serial device */
+extern int baud_rate;		/* Actual bits/second for serial device */
 char *callback_script;		/* script for doing callback */
 int charshunt_pid;		/* Process ID for charshunt */
 int locked;			/* lock() has succeeded */

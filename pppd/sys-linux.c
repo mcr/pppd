@@ -168,7 +168,9 @@ struct in6_ifreq {
 /* We can get an EIO error on an ioctl if the modem has hung up */
 #define ok_error(num) ((num)==EIO)
 
+#ifdef USE_SERIAL
 static int tty_disc = N_TTY;	/* The TTY discipline */
+#endif
 static int ppp_disc = N_PPP;	/* The PPP discpline */
 static int initfdflags = -1;	/* Initial file descriptor flags for fd */
 static int ppp_fd = -1;		/* fd which is set to PPP discipline */
@@ -196,8 +198,10 @@ static int driver_version      = 0;
 static int driver_modification = 0;
 static int driver_patch        = 0;
 static int driver_is_old       = 0;
+#ifdef USE_SERIAL
 static int restore_term        = 0;	/* 1 => we've munged the terminal */
 static struct termios inittermios;	/* Initial TTY termios */
+#endif
 
 int new_style_driver = 0;
 
@@ -211,7 +215,9 @@ static char proxy_arp_dev[16];		/* Device for proxy arp entry */
 static u_int32_t our_old_addr;		/* for detecting address changes */
 static int	dynaddr_set;		/* 1 if ip_dynaddr set */
 static int	looped;			/* 1 if using loop */
+#ifdef USE_SERIAL
 static int	link_mtu;		/* mtu for the link (not bundle) */
+#endif
 
 static struct utsname utsname;	/* for the kernel version */
 static int kernel_version;
@@ -227,8 +233,10 @@ static int kernel_version;
 
 /* Prototypes for procedures local to this file. */
 static int modify_flags(int fd, int clear_bits, int set_bits);
+#ifdef USE_SERIAL
 static int translate_speed (int bps);
 static int baud_rate_of (int speed);
+#endif
 static void close_route_table (void);
 static int open_route_table (void);
 static int read_route_table (struct rtentry *rt);
@@ -404,6 +412,7 @@ int set_bandwidth_limits(struct bandwidth_limits *bls)
  return (1);
 }
 
+#ifdef USE_SERIAL
 /********************************************************************
  *
  * tty_establish_ppp - Turn the serial port into a ppp interface.
@@ -458,6 +467,7 @@ int tty_establish_ppp (int tty_fd)
 
     return ret_fd;
 }
+#endif
 
 /********************************************************************
  *
@@ -554,6 +564,7 @@ int generic_establish_ppp (int fd)
     return -1;
 }
 
+#ifdef USE_SERIAL
 /********************************************************************
  *
  * tty_disestablish_ppp - Restore the serial port to normal operation.
@@ -595,6 +606,7 @@ flushfailed:
 
     generic_disestablish_ppp(tty_fd);
 }
+#endif /* USE_SERIAL */
 
 /********************************************************************
  *
@@ -741,6 +753,7 @@ void destroy_bundle(void)
 	}
 }
 
+#ifdef USE_SERIAL
 /********************************************************************
  *
  * clean_check - Fetch the flags for the device and generate
@@ -1043,6 +1056,7 @@ void restore_tty (int tty_fd)
 	}
     }
 }
+#endif /* USE_SERIAL */
 
 /********************************************************************
  *
@@ -1223,6 +1237,7 @@ netif_get_mtu(int unit)
     return ifr.ifr_mtu;
 }
 
+#ifdef USE_SERIAL
 /********************************************************************
  *
  * tty_send_config - configure the transmit characteristics of
@@ -1293,6 +1308,7 @@ void tty_recv_config(int mru, u_int32_t asyncmap, int pcomp, int accomp)
 			error("Couldn't set channel receive asyncmap: %m");
 	}
 }
+#endif
 
 /********************************************************************
  *
