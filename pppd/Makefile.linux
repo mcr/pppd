@@ -228,3 +228,6 @@ clean:
 
 depend:
 	$(CPP) -M $(CFLAGS) $(PPPDSRCS) >.depend
+
+TAGS etags:
+	etags ${PPPDSRCS}
