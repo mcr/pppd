@@ -259,6 +259,8 @@ chap_timeout(void *arg)
 		chap_generate_challenge(ss);
 		ss->flags |= CHALLENGE_VALID;
 	} else if (ss->challenge_xmits >= chap_max_transmits) {
+		/* give up on peer */
+		error("Peer failed to respond to CHAP challenge");
 		ss->flags &= ~CHALLENGE_VALID;
 		ss->flags |= AUTH_DONE | AUTH_FAILED;
 		auth_peer_fail(0, PPP_CHAP);
@@ -388,6 +390,7 @@ chap_handle_response(struct chap_server_state *ss, int id,
 		    }
 		}
 		if (ss->flags & AUTH_FAILED) {
+			warn("CHAP peer authentication failed for %q", name);
 			auth_peer_fail(0, PPP_CHAP);
 		} else {
 			if ((ss->flags & AUTH_DONE) == 0)
@@ -399,6 +402,7 @@ chap_handle_response(struct chap_server_state *ss, int id,
 				TIMEOUT(chap_timeout, ss,
 					chap_rechallenge_time);
 			}
+			notice("CHAP peer authentication succeeded for %q", name);
 		}
 		ss->flags |= AUTH_DONE;
 	}
