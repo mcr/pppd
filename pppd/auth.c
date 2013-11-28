@@ -634,6 +634,7 @@ already_connected:
 	the_channel->disconnect();
 
  fail:
+    notice("failed: %s", msg);
     new_phase(PHASE_DEAD);
     if (the_channel->cleanup)
 	(*the_channel->cleanup)();
