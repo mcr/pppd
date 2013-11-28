@@ -1811,6 +1811,7 @@ ipcp_up(f)
 	create_resolv(go->dnsaddr[0], go->dnsaddr[1]);
     }
 
+#ifdef USE_FULL_AUTH
     /*
      * Check that the peer is allowed to use the IP address it wants.
      */
@@ -1819,6 +1820,7 @@ ipcp_up(f)
 	ipcp_close(f->unit, "Unauthorized remote IP address");
 	return;
     }
+#endif
 
     /* set tcp compression */
     sifvjcomp(f->unit, ho->neg_vj, ho->cflag, ho->maxslotindex);

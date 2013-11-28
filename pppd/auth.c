@@ -132,8 +132,10 @@ static int auth_pending[NUM_PPP];
 /* Records which authentication operations have been completed. */
 int auth_done[NUM_PPP];
 
+#ifdef USE_FULL_AUTH
 /* List of addresses which the peer may use. */
 static struct permitted_ip *addresses[NUM_PPP];
+#endif
 
 /* Wordlist giving addresses which the peer may use
    without authenticating itself. */
@@ -142,11 +144,13 @@ static struct wordlist *noauth_addrs;
 /* Remote telephone number, if available */
 char remote_number[MAXNAMELEN];
 
+#ifdef USE_FULL_AUTH
 /* Wordlist giving remote telephone numbers which may connect. */
 static struct wordlist *permitted_numbers;
 
 /* Extra options to apply, from the secrets file entry for the peer. */
 static struct wordlist *extra_options;
+#endif
 
 /* Number of network protocols which we have opened. */
 static int num_np_open;
@@ -239,7 +243,9 @@ bool explicit_user = 0;		/* Set if "user" option supplied */
 bool explicit_passwd = 0;	/* Set if "password" option supplied */
 char remote_name[MAXNAMELEN];	/* Peer's name for authentication */
 
+#ifdef USE_FULL_AUTH
 static char *uafname;		/* name of most recent +ua file */
+#endif
 
 extern char *crypt __P((const char *, const char *));
 
@@ -248,10 +254,14 @@ extern char *crypt __P((const char *, const char *));
 static void network_phase __P((int));
 static void check_idle __P((void *));
 static void connect_time_expired __P((void *));
+#ifdef USE_FULL_AUTH
 static int  null_login __P((int));
+#endif
 static int  get_pap_passwd __P((char *));
 static int  have_pap_secret __P((int *));
 static int  have_chap_secret __P((char *, char *, int, int *));
+
+#ifdef USE_FULL_AUTH
 static int  have_srp_secret __P((char *client, char *server, int need_ip,
     int *lacks_ipp));
 static int  ip_addr_check __P((u_int32_t, struct permitted_ip *));
@@ -269,6 +279,7 @@ static int  set_noauth_addr __P((char **));
 static int  set_permitted_number __P((char **));
 static void check_access __P((FILE *, char *));
 static int  wordlist_count __P((struct wordlist *));
+#endif /* USE_FULL_AUTH */
 
 #ifdef MAXOCTETS
 static void check_maxoctets __P((void *));
@@ -286,36 +297,45 @@ option_t auth_options[] = {
     { "require-pap", o_bool, &lcp_wantoptions[0].neg_upap,
       "Require PAP authentication from peer",
       OPT_PRIOSUB | 1, &auth_required },
+#ifdef USE_FULL_AUTH
     { "+pap", o_bool, &lcp_wantoptions[0].neg_upap,
       "Require PAP authentication from peer",
       OPT_ALIAS | OPT_PRIOSUB | 1, &auth_required },
+#endif
     { "require-chap", o_bool, &auth_required,
       "Require CHAP authentication from peer",
       OPT_PRIOSUB | OPT_A2OR | MDTYPE_MD5,
       &lcp_wantoptions[0].chap_mdtype },
+#ifdef USE_FULL_AUTH
     { "+chap", o_bool, &auth_required,
       "Require CHAP authentication from peer",
       OPT_ALIAS | OPT_PRIOSUB | OPT_A2OR | MDTYPE_MD5,
       &lcp_wantoptions[0].chap_mdtype },
+#endif
 #ifdef CHAPMS
     { "require-mschap", o_bool, &auth_required,
       "Require MS-CHAP authentication from peer",
       OPT_PRIOSUB | OPT_A2OR | MDTYPE_MICROSOFT,
       &lcp_wantoptions[0].chap_mdtype },
+#ifdef USE_FULL_AUTH
     { "+mschap", o_bool, &auth_required,
       "Require MS-CHAP authentication from peer",
       OPT_ALIAS | OPT_PRIOSUB | OPT_A2OR | MDTYPE_MICROSOFT,
       &lcp_wantoptions[0].chap_mdtype },
+#endif
     { "require-mschap-v2", o_bool, &auth_required,
       "Require MS-CHAPv2 authentication from peer",
       OPT_PRIOSUB | OPT_A2OR | MDTYPE_MICROSOFT_V2,
       &lcp_wantoptions[0].chap_mdtype },
+#ifdef USE_FULL_AUTH
     { "+mschap-v2", o_bool, &auth_required,
       "Require MS-CHAPv2 authentication from peer",
       OPT_ALIAS | OPT_PRIOSUB | OPT_A2OR | MDTYPE_MICROSOFT_V2,
       &lcp_wantoptions[0].chap_mdtype },
 #endif
+#endif
 
+#ifdef USE_FULL_AUTH
     { "refuse-pap", o_bool, &refuse_pap,
       "Don't agree to auth to peer with PAP", 1 },
     { "-pap", o_bool, &refuse_pap,
@@ -328,7 +348,9 @@ option_t auth_options[] = {
       "Don't allow CHAP authentication with peer",
       OPT_ALIAS | OPT_A2CLRB | MDTYPE_MD5,
       &lcp_allowoptions[0].chap_mdtype },
+#endif
 #ifdef CHAPMS
+#ifdef USE_FULL_AUTH
     { "refuse-mschap", o_bool, &refuse_mschap,
       "Don't agree to auth to peer with MS-CHAP",
       OPT_A2CLRB | MDTYPE_MICROSOFT,
@@ -346,7 +368,9 @@ option_t auth_options[] = {
       OPT_ALIAS | OPT_A2CLRB | MDTYPE_MICROSOFT_V2,
       &lcp_allowoptions[0].chap_mdtype },
 #endif
+#endif
 
+#ifdef USE_FULL_AUTH
     { "require-eap", o_bool, &lcp_wantoptions[0].neg_eap,
       "Require EAP authentication from peer", OPT_PRIOSUB | 1,
       &auth_required },
@@ -400,10 +424,12 @@ option_t auth_options[] = {
     { "allow-number", o_special, (void *)set_permitted_number,
       "Set telephone number(s) which are allowed to connect",
       OPT_PRIV | OPT_A2LIST },
+#endif
 
     { NULL }
 };
 
+#ifdef USE_FULL_AUTH
 /*
  * setupapfile - specifies UPAP info for authenticating with peer.
  */
@@ -536,7 +562,7 @@ set_permitted_number(argv)
     permitted_numbers = wp;
     return 1;
 }
-
+#endif /* USE_FULL_AUTH */
 
 /*
  * An Open on LCP has requested a change from Dead to Establish phase.
@@ -689,7 +715,9 @@ link_down(unit)
 	if (auth_script_state == s_up && auth_script_pid == 0) {
 	    update_link_stats(unit);
 	    auth_script_state = s_down;
+#ifdef USE_FULL_AUTH
 	    auth_script(_PATH_AUTHDOWN);
+#endif
 	}
     }
     if (!doing_multilink) {
@@ -706,6 +734,15 @@ void upper_layers_down(int unit)
     int i;
     struct protent *protp;
 
+    notify(link_down_notifier, 0);
+    auth_state = s_down;
+    if (auth_script_state == s_up && auth_script_pid == 0) {
+	update_link_stats(unit);
+	auth_script_state = s_down;
+#ifdef USE_FULL_AUTH
+	auth_script(_PATH_AUTHDOWN);
+#endif /* USE_FULL_AUTH */
+    }
     for (i = 0; (protp = protocols[i]) != NULL; ++i) {
 	if (!protp->enabled_flag)
 	    continue;
@@ -743,8 +780,10 @@ link_established(unit)
 		(*protp->lowerup)(unit);
     }
 
+#ifdef USE_FULL_AUTH
     if (!auth_required && noauth_addrs != NULL)
 	set_allowed_addrs(unit, NULL, NULL);
+#endif
 
     if (auth_required && !(go->neg_upap || go->neg_chap || go->neg_eap)) {
 	/*
@@ -754,9 +793,16 @@ link_established(unit)
 	 * a username of "" and a password of "".  If that's not OK,
 	 * boot it out.
 	 */
+#ifdef USE_FULL_AUTH
 	if (noauth_addrs != NULL) {
 	    set_allowed_addrs(unit, NULL, NULL);
-	} else if (!wo->neg_upap || uselogin || !null_login(unit)) {
+	} else
+#endif /* USE_FULL_AUTH */
+		if (!wo->neg_upap || uselogin || 1
+#ifdef USE_FULL_AUTH
+			|| !null_login(unit)
+#endif /* USE_FULL_AUTH */
+			) {
 	    warn("peer refused to authenticate: terminating link");
 	    status = EXIT_PEER_AUTH_FAILED;
 	    lcp_close(unit, "peer refused to authenticate");
@@ -819,10 +865,12 @@ network_phase(unit)
     if (go->neg_chap || go->neg_upap || go->neg_eap) {
 	notify(auth_up_notifier, 0);
 	auth_state = s_up;
+#ifdef USE_FULL_AUTH
 	if (auth_script_state == s_down && auth_script_pid == 0) {
 	    auth_script_state = s_up;
 	    auth_script(_PATH_AUTHUP);
 	}
+#endif /* USE_FULL_AUTH */
     }
 
 #ifdef CBCP_SUPPORT
@@ -836,6 +884,7 @@ network_phase(unit)
     }
 #endif
 
+#ifdef USE_FULL_AUTH
     /*
      * Process extra options from the secrets file
      */
@@ -844,6 +893,7 @@ network_phase(unit)
 	free_wordlist(extra_options);
 	extra_options = 0;
     }
+#endif /* USE_FULL_AUTH */
     start_networks(unit);
 }
 
@@ -1272,11 +1322,12 @@ auth_check_options()
 	can_auth = have_chap_secret((explicit_remote? remote_name: NULL),
 				    our_name, 1, &lacks_ip);
     }
+#ifdef USE_FULL_AUTH
     if (!can_auth && wo->neg_eap) {
 	can_auth = have_srp_secret((explicit_remote? remote_name: NULL),
 				    our_name, 1, &lacks_ip);
     }
-
+#endif
     if (auth_required && !can_auth && noauth_addrs == NULL) {
 	if (default_auth) {
 	    option_error(
@@ -1299,6 +1350,7 @@ auth_check_options()
 	exit(1);
     }
 
+#ifdef USE_FULL_AUTH
     /*
      * Early check for remote number authorization.
      */
@@ -1306,6 +1358,7 @@ auth_check_options()
 	warn("calling number %q is not authorized", remote_number);
 	exit(EXIT_CNID_AUTH_FAILED);
     }
+#endif
 }
 
 /*
@@ -1327,12 +1380,13 @@ auth_reset(unit)
 	&& (passwd[0] != 0 ||
 	    (hadchap = have_chap_secret(user, (explicit_remote? remote_name:
 					       NULL), 0, NULL)));
+#ifdef USE_FULL_AUTH
     ao->neg_eap = !refuse_eap && (
 	passwd[0] != 0 ||
 	(hadchap == 1 || (hadchap == -1 && have_chap_secret(user,
 	    (explicit_remote? remote_name: NULL), 0, NULL))) ||
 	have_srp_secret(user, (explicit_remote? remote_name: NULL), 0, NULL));
-
+#endif
     hadchap = -1;
     if (go->neg_upap && !uselogin && !have_pap_secret(NULL))
 	go->neg_upap = 0;
@@ -1341,6 +1395,7 @@ auth_reset(unit)
 			      our_name, 1, NULL)))
 	    go->neg_chap = 0;
     }
+#ifdef USE_FULL_AUTH
     if (go->neg_eap &&
 	(hadchap == 0 || (hadchap == -1 &&
 	    !have_chap_secret((explicit_remote? remote_name: NULL), our_name,
@@ -1348,6 +1403,7 @@ auth_reset(unit)
 	!have_srp_secret((explicit_remote? remote_name: NULL), our_name, 1,
 	    NULL))
 	go->neg_eap = 0;
+#endif
 }
 
 
@@ -1370,13 +1426,15 @@ check_passwd(unit, auser, userlen, apasswd, passwdlen, msg)
     int passwdlen;
     char **msg;
 {
-    int ret;
+#ifdef USE_FULL_AUTH
     char *filename;
     FILE *f;
+    static int attempts = 0;
+#endif /* USE_FULL_AUTH */
+    int ret = 0;
     struct wordlist *addrs = NULL, *opts = NULL;
     char passwd[256], user[256];
     char secret[MAXWORDLEN];
-    static int attempts = 0;
 
     /*
      * Make copies of apasswd and auser, then null-terminate them.
@@ -1395,17 +1453,20 @@ check_passwd(unit, auser, userlen, apasswd, passwdlen, msg)
 	if (ret >= 0) {
 	    /* note: set_allowed_addrs() saves opts (but not addrs):
 	       don't free it! */
+#ifdef USE_FULL_AUTH
 	    if (ret)
 		set_allowed_addrs(unit, addrs, opts);
 	    else if (opts != 0)
 		free_wordlist(opts);
 	    if (addrs != 0)
 		free_wordlist(addrs);
+#endif /* USE_FULL_AUTH */
 	    BZERO(passwd, sizeof(passwd));
 	    return ret? UPAP_AUTHACK: UPAP_AUTHNAK;
 	}
     }
 
+#ifdef USE_FULL_AUTH
     /*
      * Open the file of pap secrets and scan for a suitable secret
      * for authenticating this user.
@@ -1478,12 +1539,14 @@ check_passwd(unit, auser, userlen, apasswd, passwdlen, msg)
 
     if (addrs != NULL)
 	free_wordlist(addrs);
+#endif /* USE_FULL_AUTH */
     BZERO(passwd, sizeof(passwd));
     BZERO(secret, sizeof(secret));
 
     return ret;
 }
 
+#ifdef USE_FULL_AUTH
 /*
  * null_login - Check if a username of "" and a password of "" are
  * acceptable, and iff so, set the list of acceptable IP addresses
@@ -1532,7 +1595,7 @@ null_login(unit)
 
     return ret;
 }
-
+#endif /* USE_FULL_AUTH */
 
 /*
  * get_pap_passwd - get a password for authenticating ourselves with
@@ -1544,10 +1607,12 @@ static int
 get_pap_passwd(passwd)
     char *passwd;
 {
+    int ret;
+#ifdef USE_FULL_AUTH
     char *filename;
     FILE *f;
-    int ret;
     char secret[MAXWORDLEN];
+#endif /* USE_FULL_AUTH */
 
     /*
      * Check whether a plugin wants to supply this.
@@ -1558,6 +1623,7 @@ get_pap_passwd(passwd)
 	    return ret;
     }
 
+#ifdef USE_FULL_AUTH
     filename = _PATH_UPAPFILE;
     f = fopen(filename, "r");
     if (f == NULL)
@@ -1572,6 +1638,7 @@ get_pap_passwd(passwd)
     if (passwd != NULL)
 	strlcpy(passwd, secret, MAXSECRETLEN);
     BZERO(secret, sizeof(secret));
+#endif /* USE_FULL_AUTH */
     return 1;
 }
 
@@ -1584,10 +1651,12 @@ static int
 have_pap_secret(lacks_ipp)
     int *lacks_ipp;
 {
+    int ret = -1;
+#ifdef USE_FULL_AUTH
     FILE *f;
-    int ret;
     char *filename;
     struct wordlist *addrs;
+#endif /* USE_FULL_AUTH */
 
     /* let the plugin decide, if there is one */
     if (pap_check_hook) {
@@ -1596,6 +1665,7 @@ have_pap_secret(lacks_ipp)
 	    return ret;
     }
 
+#ifdef USE_FULL_AUTH
     filename = _PATH_UPAPFILE;
     f = fopen(filename, "r");
     if (f == NULL)
@@ -1611,6 +1681,7 @@ have_pap_secret(lacks_ipp)
     }
     if (addrs != 0)
 	free_wordlist(addrs);
+#endif /* USE_FULL_AUTH */
 
     return ret >= 0;
 }
@@ -1629,10 +1700,12 @@ have_chap_secret(client, server, need_ip, lacks_ipp)
     int need_ip;
     int *lacks_ipp;
 {
+    int ret = -1;
+#ifdef USE_FULL_AUTH
     FILE *f;
-    int ret;
     char *filename;
     struct wordlist *addrs;
+#endif /* USE_FULL_AUTH */
 
     if (chap_check_hook) {
 	ret = (*chap_check_hook)();
@@ -1641,6 +1714,7 @@ have_chap_secret(client, server, need_ip, lacks_ipp)
 	}
     }
 
+#ifdef USE_FULL_AUTH
     filename = _PATH_CHAPFILE;
     f = fopen(filename, "r");
     if (f == NULL)
@@ -1660,11 +1734,12 @@ have_chap_secret(client, server, need_ip, lacks_ipp)
     }
     if (addrs != 0)
 	free_wordlist(addrs);
+#endif /* USE_FULL_AUTH */
 
     return ret >= 0;
 }
 
-
+#ifdef USE_FULL_AUTH
 /*
  * have_srp_secret - check whether we have a SRP file with a
  * secret that we could possibly use for authenticating `client'
@@ -1705,7 +1780,7 @@ have_srp_secret(client, server, need_ip, lacks_ipp)
 
     return ret >= 0;
 }
-
+#endif /* USE_FULL_AUTH */
 
 /*
  * get_secret - open the CHAP secret file and return the secret
@@ -1721,11 +1796,14 @@ get_secret(unit, client, server, secret, secret_len, am_server)
     int *secret_len;
     int am_server;
 {
+    int len;
+    char secbuf[MAXWORDLEN];
+#ifdef USE_FULL_AUTH
+    int ret;
     FILE *f;
-    int ret, len;
     char *filename;
     struct wordlist *addrs, *opts;
-    char secbuf[MAXWORDLEN];
+#endif /* USE_FULL_AUTH */
 
     if (!am_server && passwd[0] != 0) {
 	strlcpy(secbuf, passwd, sizeof(secbuf));
@@ -1735,7 +1813,9 @@ get_secret(unit, client, server, secret, secret_len, am_server)
 		  client, server);
 	    return 0;
 	}
-    } else {
+    }
+#ifdef USE_FULL_AUTH
+    else {
 	filename = _PATH_CHAPFILE;
 	addrs = NULL;
 	secbuf[0] = 0;
@@ -1759,6 +1839,7 @@ get_secret(unit, client, server, secret, secret_len, am_server)
 	if (addrs != 0)
 	    free_wordlist(addrs);
     }
+#endif /* USE_FULL_AUTH */
 
     len = strlen(secbuf);
     if (len > MAXSECRETLEN) {
@@ -1772,7 +1853,7 @@ get_secret(unit, client, server, secret, secret_len, am_server)
     return 1;
 }
 
-
+#ifdef USE_FULL_AUTH
 /*
  * get_srp_secret - open the SRP secret file and return the secret
  * for authenticating the given client on the given server.
@@ -2020,6 +2101,8 @@ ip_addr_check(addr, addrs)
 	    return addrs->permit;
 }
 
+#endif /* USE_FULL_AUTH */
+
 /*
  * bad_ip_adrs - return 1 if the IP address is one we don't want
  * to use, such as an address in the loopback net or a multicast address.
@@ -2034,6 +2117,7 @@ bad_ip_adrs(addr)
 	|| IN_MULTICAST(addr) || IN_BADCLASS(addr);
 }
 
+#ifdef USE_FULL_AUTH
 /*
  * some_ip_ok - check a wordlist to see if it authorizes any
  * IP address(es).
@@ -2359,3 +2443,4 @@ auth_script(script)
 
     auth_script_pid = run_program(script, argv, 0, auth_script_done, NULL, 0);
 }
+#endif /* USE_FULL_AUTH */

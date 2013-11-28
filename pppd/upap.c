@@ -425,7 +425,7 @@ upap_rauthreq(u, inp, id, len)
     retcode = check_passwd(u->us_unit, ruser, ruserlen, rpasswd,
 			   rpasswdlen, &msg);
     BZERO(rpasswd, rpasswdlen);
-
+#ifdef USE_FULL_AUTH
     /*
      * Check remote number authorization.  A plugin may have filled in
      * the remote number or added an allowed number, and rather than
@@ -438,7 +438,7 @@ upap_rauthreq(u, inp, id, len)
 	    warn("calling number %q is not authorized", remote_number);
 	}
     }
-
+#endif /* USE_FULL_AUTH */
     msglen = strlen(msg);
     if (msglen > 255)
 	msglen = 255;
@@ -556,7 +556,7 @@ upap_sauthreq(u)
     outlen = UPAP_HEADERLEN + 2 * sizeof (u_char) +
 	u->us_userlen + u->us_passwdlen;
     outp = outpacket_buf;
-    
+
     MAKEHEADER(outp, PPP_PAP);
 
     PUTCHAR(UPAP_AUTHREQ, outp);

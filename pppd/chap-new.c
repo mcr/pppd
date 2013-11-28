@@ -345,7 +345,11 @@ chap_handle_response(struct chap_server_state *ss, int id,
 		ok = (*verifier)(name, ss->name, id, ss->digest,
 				 ss->challenge + PPP_HDRLEN + CHAP_HDRLEN,
 				 response, ss->message, sizeof(ss->message));
-		if (!ok || !auth_number()) {
+		if (!ok
+#ifdef USE_FULL_AUTH
+		    || !auth_number()
+#endif
+		   ) {
 			ss->flags |= AUTH_FAILED;
 			warn("Peer %q failed CHAP authentication", name);
 		}

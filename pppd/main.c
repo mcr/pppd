@@ -197,9 +197,10 @@ int privopen;			/* don't lock, open device as root */
 
 char *no_ppp_msg = "Sorry - this system lacks PPP kernel support\n";
 
+#ifdef USE_FULL_AUTH
 GIDSET_TYPE groups[NGROUPS_MAX];/* groups the user is in */
 int ngroups;			/* How many groups valid in groups */
-
+#endif /* USE_FULL_AUTH */
 static struct timeval start_time;	/* Time when link was started. */
 
 static struct pppd_stats old_link_stats;
@@ -341,7 +342,9 @@ main(argc, argv)
     slprintf(numbuf, sizeof(numbuf), "%d", uid);
     script_setenv("ORIG_UID", numbuf, 0);
 
+#ifdef USE_FULL_AUTH
     ngroups = getgroups(NGROUPS_MAX, groups);
+#endif /* USE_FULL_AUTH */
 
     /*
      * Initialize magic number generator now so that protocols may
@@ -418,6 +421,16 @@ main(argc, argv)
 	print_options(pr_log, NULL);
 	end_pr_log();
     }
+
+#ifdef USE_FULL_AUTH
+    /*
+     * Early check for remote number authorization.
+     */
+    if (!auth_number()) {
+	warn("calling number %q is not authorized", remote_number);
+	exit(EXIT_CNID_AUTH_FAILED);
+    }
+#endif /* USE_FULL_AUTH */
 
     if (dryrun)
 	die(0);

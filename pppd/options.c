@@ -540,6 +540,7 @@ options_for_tty()
     return ret;
 }
 
+#ifdef USE_FULL_AUTH
 /*
  * options_from_list - process a string of options in a wordlist.
  */
@@ -585,6 +586,7 @@ options_from_list(w, priv)
 err:
     return ret;
 }
+#endif /* USE_FULL_AUTH */
 
 /*
  * match_option - see if this option matches an option_t structure.
