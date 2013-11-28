@@ -17,7 +17,7 @@ TARGETS = pppd
 
 PPPDSRCS = main.c magic.c fsm.c lcp.c ipcp.c upap.c chap-new.c md5.c ccp.c \
 	   ${PPP_OPTIONAL_SRCS} \
-	   ecp.c ipxcp.c auth.c options.c sys-linux.c md4.c chap_ms.c \
+	   ipxcp.c auth.c options.c sys-linux.c md4.c chap_ms.c \
 	   demand.c utils.c eap.c chap-md5.c session.c
 
 HEADERS = ccp.h session.h chap-new.h ecp.h fsm.h ipcp.h \
@@ -28,7 +28,7 @@ MANPAGES = pppd.8
 
 PPPDOBJS = main.o magic.o fsm.o lcp.o ipcp.o upap.o chap-new.o md5.o ccp.o \
 	   ${PPP_OPTIONAL_OBJS} \
-	   ecp.o auth.o options.o demand.o utils.o sys-linux.o ipxcp.o \
+	   auth.o options.o demand.o utils.o sys-linux.o ipxcp.o \
 	   eap.o chap-md5.o session.o
 
 #
@@ -140,6 +140,12 @@ ifdef USE_FULL_AUTH
 #PPP_OPTIONAL_SRCS +=
 #PPP_OPTIONAL_OBJS +=
 BUILD_OPTIONS+= -DUSE_FULL_AUTH
+endif
+
+ifdef USE_ECP
+PPP_OPTIONAL_SRCS += ecp.c
+PPP_OPTIONAL_OBJS += ecp.o
+BUILD_OPTIONS+= -DUSE_ECP
 endif
 
 ifdef USE_SERIAL

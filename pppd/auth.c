@@ -950,7 +950,11 @@ start_networks(unit)
     /*
      * Bring up other network protocols iff encryption is not required.
      */
+#ifdef USE_ECP
     ecp_required = ecp_gotoptions[unit].required;
+#else
+    ecp_required = 0;
+#endif
     mppe_required = ccp_gotoptions[unit].mppe;
     if (!ecp_required && !mppe_required)
 	continue_networks(unit);

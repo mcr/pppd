@@ -292,7 +292,9 @@ struct protent *protocols[] = {
     &ipv6cp_protent,
 #endif
     &ccp_protent,
+#ifdef USE_ECP
     &ecp_protent,
+#endif
 #ifdef IPX_CHANGE
     &ipxcp_protent,
 #endif
