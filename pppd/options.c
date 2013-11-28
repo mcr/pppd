@@ -53,6 +53,8 @@
 #include <pwd.h>
 #ifdef PLUGIN
 #include <dlfcn.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #endif
 
 #ifdef PPP_FILTER
@@ -94,7 +96,11 @@ int	debug = 0;		/* Debug flag */
 int	kdebugflag = 0;		/* Tell kernel to print debug messages */
 int	default_device = 1;	/* Using /dev/tty or equivalent */
 char	devnam[MAXPATHLEN];	/* Device name */
+#ifdef ALL_OPTIONS
 bool	nodetach = 0;		/* Don't detach from controlling tty */
+#else /* ALL_OPTIONS */
+bool	nodetach = 1;		/* Don't detach from controlling tty */
+#endif /* ALL_OPTIONS */
 bool	updetach = 0;		/* Detach once link is up */
 bool	master_detach;		/* Detach when we're (only) multilink master */
 int	maxconnect = 0;		/* Maximum connect time */
@@ -125,7 +131,7 @@ struct userenv *userenv_list;	/* user environment variables */
 #ifdef MAXOCTETS
 unsigned int  maxoctets = 0;    /* default - no limit */
 int maxoctets_dir = 0;       /* default - sum of traffic */
-int maxoctets_timeout = 1;   /* default 1 second */ 
+int maxoctets_timeout = 1;   /* default 1 second */
 #endif
 
 
@@ -145,18 +151,23 @@ int  option_priority = OPRIO_CFGFILE; /* priority of the current options */
 bool devnam_fixed;		/* can no longer change device name */
 
 static int logfile_fd = -1;	/* fd opened for log file */
+
+#ifdef ALL_OPTIONS
 static char logfile_name[MAXPATHLEN];	/* name of log file */
+#endif /* ALL_OPTIONS */
 
 /*
  * Prototypes
  */
+#ifdef ALL_OPTIONS
 static int setdomain __P((char **));
-static int readfile __P((char **));
 static int callfile __P((char **));
+static int setlogfile __P((char **));
+#endif
+static int readfile __P((char **));
 static int showversion __P((char **));
 static int showhelp __P((char **));
 static void usage __P((void));
-static int setlogfile __P((char **));
 #ifdef PLUGIN
 static int loadplugin __P((char **));
 #endif
@@ -196,13 +207,15 @@ static struct option_list *extra_options = NULL;
 option_t general_options[] = {
     { "debug", o_int, &debug,
       "Increase debugging level", OPT_INC | OPT_NOARG | 1 },
+#ifdef ALL_OPTIONS
     { "-d", o_int, &debug,
       "Increase debugging level",
       OPT_ALIAS | OPT_INC | OPT_NOARG | 1 },
-
+#endif /* ALL_OPTIONS */
     { "kdebug", o_int, &kdebugflag,
       "Set kernel driver debug level", OPT_PRIO },
 
+#ifdef ALL_OPTIONS
     { "nodetach", o_bool, &nodetach,
       "Don't detach from controlling tty", OPT_PRIO | 1 },
     { "-detach", o_bool, &nodetach,
@@ -228,9 +241,11 @@ option_t general_options[] = {
     { "domain", o_special, (void *)setdomain,
       "Add given domain name to hostname",
       OPT_PRIO | OPT_PRIV | OPT_A2STRVAL, &domain },
+#endif /* ALL_OPTIONS */
 
     { "file", o_special, (void *)readfile,
       "Take options from a file", OPT_NOPRINT },
+#ifdef ALL_OPTIONS
     { "call", o_special, (void *)callfile,
       "Take options from a privileged file", OPT_NOPRINT },
 
@@ -241,11 +256,13 @@ option_t general_options[] = {
 
     { "demand", o_bool, &demand,
       "Dial on demand", OPT_INITONLY | 1, &persist },
+#endif /* ALL_OPTIONS */
 
     { "--version", o_special_noarg, (void *)showversion,
       "Show version number" },
     { "--help", o_special_noarg, (void *)showhelp,
       "Show brief listing of options" },
+#ifdef ALL_OPTIONS
     { "-h", o_special_noarg, (void *)showhelp,
       "Show brief listing of options", OPT_ALIAS },
 
@@ -255,9 +272,11 @@ option_t general_options[] = {
     { "logfd", o_int, &log_to_fd,
       "Send log messages to this file descriptor",
       OPT_PRIOSUB | OPT_A2CLR, &log_default },
+#endif /* ALL_OPTIONS */
     { "nolog", o_int, &log_to_fd,
       "Don't send log messages to any file",
       OPT_PRIOSUB | OPT_NOARG | OPT_VAL(-1) },
+#ifdef ALL_OPTIONS
     { "nologfd", o_int, &log_to_fd,
       "Don't send log messages to any file descriptor",
       OPT_PRIOSUB | OPT_ALIAS | OPT_NOARG | OPT_VAL(-1) },
@@ -278,15 +297,18 @@ option_t general_options[] = {
     { "connect-delay", o_int, &connect_delay,
       "Maximum time (in ms) to wait after connect script finishes",
       OPT_PRIO },
+#endif /* ALL_OPTIONS */
 
     { "unit", o_int, &req_unit,
       "PPP interface unit number to use if possible",
       OPT_PRIO | OPT_LLIMIT, 0, 0 },
 
+#ifdef ALL_OPTIONS
     { "dump", o_bool, &dump_options,
       "Print out option values after parsing all options", 1 },
     { "dryrun", o_bool, &dryrun,
       "Stop after parsing, printing, and checking options", 1 },
+#endif /* ALL_OPTIONS */
 
     { "child-timeout", o_int, &child_wait,
       "Number of seconds to wait for child processes at exit",
@@ -438,7 +460,7 @@ options_from_file(filename, must_exist, check_prot, priv)
 		warn("Warning: can't open options file %s: %m", filename);
 	    return 1;
 	}
-	option_error("Can't open options file %s: %m", filename);
+	option_error("Could not open options file %s: %m", filename);
 	return 0;
     }
 
@@ -478,6 +500,7 @@ err:
     return ret;
 }
 
+#ifdef ALL_OPTIONS
 /*
  * options_from_user - See if the use has a ~/.ppprc file,
  * and if so, interpret options from it.
@@ -504,6 +527,7 @@ options_from_user()
     free(path);
     return ret;
 }
+#endif /* ALL_OPTIONS */
 
 #ifdef USE_SERIAL
 /*
@@ -1431,6 +1455,7 @@ readfile(argv)
     return options_from_file(*argv, 1, 1, privileged_option);
 }
 
+#ifdef ALL_OPTIONS
 /*
  * callfile - take commands from /etc/ppp/peers/<name>.
  * Name may not contain /../, start with / or ../, or end in /..
@@ -1473,6 +1498,7 @@ callfile(argv)
     free(fname);
     return ok;
 }
+#endif /* ALL_OPTIONS */
 
 #ifdef PPP_FILTER
 /*
@@ -1518,8 +1544,9 @@ setactivefilter(argv)
 }
 #endif
 
+#ifdef ALL_OPTIONS
 /*
- * setdomain - Set domain name to append to hostname 
+ * setdomain - Set domain name to append to hostname
  */
 static int
 setdomain(argv)
@@ -1567,6 +1594,7 @@ setlogfile(argv)
     log_default = 0;
     return 1;
 }
+#endif /* ALL_OPTIONS */
 
 #ifdef MAXOCTETS
 static int

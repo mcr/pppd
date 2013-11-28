@@ -928,8 +928,10 @@ start_networks(unit)
 	if (mp_join_bundle()) {
 	    if (multilink_join_hook)
 		(*multilink_join_hook)();
+#ifdef ALL_OPTIONS
 	    if (updetach && !nodetach)
 		detach();
+#endif
 	    return;
 	}
     }
@@ -1162,11 +1164,13 @@ np_up(unit, proto)
 	    TIMEOUT(check_maxoctets, NULL, maxoctets_timeout);
 #endif
 
+#ifdef ALL_OPTIONS
 	/*
 	 * Detach now, if the updetach option was given.
 	 */
 	if (updetach && !nodetach)
 	    detach();
+#endif /* ALL_OPTIONS */
     }
     ++num_np_up;
 }

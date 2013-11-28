@@ -324,8 +324,10 @@ main(argc, argv)
     char *argv[];
 {
     int i, t;
+#ifdef ALL_OPTIONS
     char *p;
     struct passwd *pw;
+#endif /* ALL_OPTIONS */
     struct protent *protp;
     char numbuf[16];
 
@@ -386,7 +388,9 @@ main(argc, argv)
      * and the command line arguments.
      */
     if (!options_from_file(_PATH_SYSOPTIONS, !privileged, 0, 1)
+#ifdef ALL_OPTIONS
 	|| !options_from_user()
+#endif /* ALL_OPTIONS */
 	|| !parse_args(argc-1, argv+1))
 	exit(EXIT_OPTION_ERROR);
     devnam_fixed = 1;		/* can no longer change device name */
@@ -482,6 +486,7 @@ main(argc, argv)
     }
 #endif
 
+#ifdef ALL_OPTIONS
     /*
      * Detach ourselves from the terminal, if required,
      * and identify who is running us.
@@ -498,6 +503,9 @@ main(argc, argv)
     }
     syslog(LOG_NOTICE, "pppd %s started by %s, uid %d", VERSION, p, uid);
     script_setenv("PPPLOGNAME", p, 0);
+#else
+    syslog(LOG_NOTICE, "pppd %s is started", VERSION);
+#endif /* ALL_OPTIONS */
 
     if (devnam[0])
 	script_setenv("DEVICE", devnam, 1);
@@ -782,6 +790,7 @@ set_ifunit(iskey)
     }
 }
 
+#ifdef ALL_OPTIONS
 /*
  * detach - detach us from the controlling terminal.
  */
@@ -831,6 +840,9 @@ detach()
     complete_read(pipefd[0], numbuf, 1);
     close(pipefd[0]);
 }
+#else
+void detach() {}
+#endif /* ALL_OPTIONS */
 
 /*
  * reopen_log - (re)open our connection to syslog.

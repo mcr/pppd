@@ -64,7 +64,7 @@ radrealms.so: radrealms.o
 	$(CC) -o radrealms.so -shared radrealms.o
 
 CLIENTOBJS = avpair.o buildreq.o config.o dict.o ip_util.o \
-	clientid.o sendserver.o lock.o util.o md5.o log.o
+	clientid.o sendserver.o lock.o util.o md5.o
 libradiusclient.a: $(CLIENTOBJS)
 	$(AR) rv $@ $?
 
