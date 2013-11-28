@@ -12,6 +12,7 @@ INCDIR = $(DESTDIR)/include
 TARGETS = pppd
 
 PPPDSRCS = main.c magic.c fsm.c lcp.c ipcp.c upap.c chap-new.c md5.c ccp.c \
+	   ${PPP_OPTIONAL_SRCS} \
 	   ecp.c ipxcp.c auth.c options.c sys-linux.c md4.c chap_ms.c \
 	   demand.c utils.c tty.c eap.c chap-md5.c session.c
 
@@ -21,6 +22,7 @@ HEADERS = ccp.h session.h chap-new.h ecp.h fsm.h ipcp.h \
 
 MANPAGES = pppd.8
 PPPDOBJS = main.o magic.o fsm.o lcp.o ipcp.o upap.o chap-new.o md5.o ccp.o \
+	   ${PPP_OPTIONAL_OBJS} \
 	   ecp.o auth.o options.o demand.o utils.o sys-linux.o ipxcp.o tty.o \
 	   eap.o chap-md5.o session.o
 
@@ -90,7 +92,7 @@ CFLAGS= $(COPTS) $(COMPILE_FLAGS) $(INCLUDE_DIRS) '-DDESTDIR="@DESTDIR@"'
 ifdef CHAPMS
 CFLAGS   += -DCHAPMS=1
 NEEDDES=y
-PPPDOBJS += md4.o chap_ms.o
+PPP_OPTIONAL_OBJS += md4.o chap_ms.o
 HEADERS	+= md4.h chap_ms.h
 ifdef MSLANMAN
 CFLAGS   += -DMSLANMAN=1
@@ -113,9 +115,9 @@ else
 # OpenSSL has an integrated version of SHA-1, and its implementation
 # is incompatible with this local SHA-1 implementation.  We must use
 # one or the other, not both.
-PPPDSRCS += sha1.c
+PPP_OPTIONAL_SRCS += sha1.c
 HEADERS += sha1.h
-PPPDOBJS += sha1.o
+PPP_OPTIONAL_OBJS += sha1.o
 endif
 
 ifdef HAS_SHADOW
@@ -139,7 +141,7 @@ LIBS     += -ldes $(LIBS)
 else
 CFLAGS   += -DUSE_CRYPT=1
 endif
-PPPDOBJS += pppcrypt.o
+PPP_OPTIONAL_OBJS += pppcrypt.o
 HEADERS += pppcrypt.h
 endif
 
@@ -155,15 +157,15 @@ ifdef HAVE_MULTILINK
 	USE_TDB=y
 
 	CFLAGS += -DHAVE_MULTILINK
-	PPPDSRCS += multilink.c
-	PPPDOBJS += multilink.o
+	PPP_OPTIONAL_SRCS += multilink.c
+	PPP_OPTIONAL_OBJS += multilink.o
 endif
 
 # TDB
 ifdef USE_TDB
 	CFLAGS += -DUSE_TDB=1
-	PPPDSRCS += tdb.c spinlock.c
-	PPPDOBJS += tdb.o spinlock.o
+	PPP_OPTIONAL_SRCS += tdb.c spinlock.c
+	PPP_OPTIONAL_OBJS += tdb.o spinlock.o
 	HEADERS += tdb.h spinlock.h
 endif
 
@@ -187,15 +189,15 @@ endif
 endif
 
 ifdef HAVE_INET6
-     PPPDSRCS += ipv6cp.c eui64.c
+     PPP_OPTIONAL_SRCS += ipv6cp.c eui64.c
      HEADERS  += ipv6cp.h eui64.h
-     PPPDOBJS += ipv6cp.o eui64.o
-     CFLAGS   += -DINET6=1
+     PPP_OPTIONAL_OBJS += ipv6cp.o eui64.o
+     BUILD_OPTIONS += -DINET6=1
 endif
 
 ifdef CBCP
-     PPPDSRCS += cbcp.c
-     PPPDOBJS += cbcp.o
+     PPP_OPTIONAL_SRCS += cbcp.c
+     PPP_OPTIONAL_OBJS += cbcp.o
      CFLAGS += -DCBCP_SUPPORT
      HEADERS += cbcp.h
 endif
@@ -204,7 +206,8 @@ ifdef MAXOCTETS
      CFLAGS += -DMAXOCTETS
 endif
 
-INSTALL= install
+INSTALL= install -o root
+CFLAGS += ${BUILD_OPTIONS}
 
 all: $(TARGETS)
 
