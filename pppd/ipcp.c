@@ -767,8 +767,19 @@ ipcp_cilen(f)
      * First see if we want to change our options to the old
      * forms because we have received old forms from the peer.
      */
+#ifdef FP_PPP_MAC_PPP_STACK_ADDRESS_NEGOTIATION
+    /* VT - 03/03/03 - Resolved incompatibility with Mac ppp stack
+    if ((wo->neg_addr || wo->old_addrs) && !go->neg_addr && !go->old_addrs) {
+    */
+	/* use the old style of address negotiation */
+    /*
+	go->old_addrs = 1;
+    }
+       VT - 03/03/03 - Resolved incompatibility with Mac ppp stack */
+#else
     if (go->neg_addr && go->old_addrs && !ho->neg_addr && ho->old_addrs)
 	go->neg_addr = 0;
+#endif
     if (wo->neg_vj && !go->neg_vj && !go->old_vj) {
 	/* try an older style of VJ negotiation */
 	/* use the old style only if the peer did */
