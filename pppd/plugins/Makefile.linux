@@ -54,8 +54,6 @@ install: $(PLUGINS)
 				LIBDIR=$(LIBDIR) install || exit 1 ; done
 
 clean:
-	echo MAKEFLAGS: $(MAKEFLAGS)
-	echo MFLAGS:    $(MFLAGS)
 	rm -f *.o *.so *.a
 	for d in $(SUBDIRS); do $(MAKE) $(MFLAGS) KERNEL_INC_DIR=${KERNEL_INC_DIR}  -C $$d clean; done
 
