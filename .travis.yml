@@ -1,0 +1,5 @@
+before_install:
+  - "sudo apt-get install build-essential linux-headers-generic"
+
+script: "contrib/build-all-options.sh"
+
