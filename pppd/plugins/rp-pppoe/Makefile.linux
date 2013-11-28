@@ -26,7 +26,12 @@ INSTALL	= install
 RP_VERSION=3.8p
 
 COPTS=-O2 -g
-CFLAGS=$(COPTS) -I../../../include '-DRP_VERSION="$(RP_VERSION)"'
+INCLUDE_DIRS:= -I../.. -I../../../include
+ifdef KERNEL_INC_DIR
+INCLUDE_DIRS+= -I${KERNEL_INC_DIR}
+endif
+CFLAGS = $(COPTS) ${INCLUDE_DIRS} '-DRP_VERSION="$(RP_VERSION)"' -fPIC
+
 all: rp-pppoe.so pppoe-discovery
 
 pppoe-discovery: pppoe-discovery.o debug.o

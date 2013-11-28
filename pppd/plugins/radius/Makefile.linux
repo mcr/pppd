@@ -12,7 +12,12 @@ VERSION = $(shell awk -F '"' '/VERSION/ { print $$2; }' ../../patchlevel.h)
 INSTALL	= install
 
 RADIUSPLUGIN=radius.so radattr.so radrealms.so
-CFLAGS=-I. -I../.. -I../../../include -O2 -fPIC -DRC_LOG_FACILITY=LOG_DAEMON
+PLUGIN=radius.so radattr.so radrealms.so
+INCLUDE_DIRS:= -I. -I../.. -I../../../include
+ifdef KERNEL_INC_DIR
+INCLUDE_DIRS+= -I${KERNEL_INC_DIR}
+endif
+CFLAGS  = -O2 -fPIC -DRC_LOG_FACILITY=LOG_DAEMON ${INCLUDE_DIRS}
 
 # Uncomment the next line to include support for Microsoft's
 # MS-CHAP authentication protocol.

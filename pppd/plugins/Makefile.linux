@@ -1,6 +1,11 @@
+# -*- makefile -*-
 #CC	= gcc
 COPTS	= -O2 -g
-CFLAGS	= $(COPTS) -I.. -I../../include -fPIC
+INCLUDE_DIRS:= -I.. -I../.. -I../../../include
+ifdef KERNEL_INC_DIR
+INCLUDE_DIRS+= -I${KERNEL_INC_DIR}
+endif
+CFLAGS	= $(COPTS) -fPIC ${INCLUDE_DIRS}
 LDFLAGS	= -shared
 INSTALL	= install
 
@@ -20,7 +25,7 @@ include .depend
 endif
 
 all:	$(PLUGINS)
-	for d in $(SUBDIRS); do $(MAKE) $(MFLAGS) -C $$d all; done
+	for d in $(SUBDIRS); do $(MAKE) $(MFLAGS) KERNEL_INC_DIR=${KERNEL_INC_DIR} -C $$d all || exit 1 ; done
 
 %.so: %.c
 	$(CC) -o $@ $(LDFLAGS) $(CFLAGS) $^
@@ -30,12 +35,15 @@ VERSION = $(shell awk -F '"' '/VERSION/ { print $$2; }' ../patchlevel.h)
 install: $(PLUGINS)
 	$(INSTALL) -d $(LIBDIR)
 	$(INSTALL) $? $(LIBDIR)
-	for d in $(SUBDIRS); do $(MAKE) $(MFLAGS) -C $$d install; done
+	for d in $(SUBDIRS); do $(MAKE) $(MFLAGS) KERNEL_INC_DIR=${KERNEL_INC_DIR}  -C $$d INSTALL=$(INSTALL) \
+				LIBDIR=$(LIBDIR) install || exit 1 ; done
 
 clean:
+	echo MAKEFLAGS: $(MAKEFLAGS)
+	echo MFLAGS:    $(MFLAGS)
 	rm -f *.o *.so *.a
-	for d in $(SUBDIRS); do $(MAKE) $(MFLAGS) -C $$d clean; done
+	for d in $(SUBDIRS); do $(MAKE) $(MFLAGS) KERNEL_INC_DIR=${KERNEL_INC_DIR}  -C $$d clean; done
 
 depend:
 	$(CPP) -M $(CFLAGS) *.c >.depend
-	for d in $(SUBDIRS); do $(MAKE) $(MFLAGS) -C $$d depend; done
+	for d in $(SUBDIRS); do $(MAKE) $(MFLAGS) KERNEL_INC_DIR=${KERNEL_INC_DIR}  -C $$d depend; done
