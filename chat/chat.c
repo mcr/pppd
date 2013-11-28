@@ -1038,11 +1038,12 @@ void chat_send (s)
 register char *s;
 {
     char file_data[STR_LEN];
+    int  err;
 
     if (say_next) {
 	say_next = 0;
 	s = clean(s, 1);
-	write(2, s, strlen(s));
+	err = write(2, s, strlen(s));
         free(s);
 	return;
     }
@@ -1356,6 +1357,7 @@ int n;
 {
     static int need_lf;
     char *s;
+    int err;
 
     switch (n) {
     case '\r':		/* ignore '\r' */
@@ -1365,14 +1367,18 @@ int n;
 	    break;
 	/* fall through */
     case '\n':
-	write(2, "\n", 1);
+	err = write(2, "\n", 1);
 	need_lf = 0;
 	break;
     default:
 	s = character(n);
-	write(2, s, strlen(s));
+	err = write(2, s, strlen(s));
 	need_lf = 1;
 	break;
+    }
+
+    if(err <= 0) {
+      exit(98);
     }
 }
 

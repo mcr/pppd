@@ -1117,7 +1117,7 @@ np_down(unit, proto)
 	UNTIMEOUT(connect_time_expired, NULL);
 #ifdef MAXOCTETS
 	UNTIMEOUT(check_maxoctets, NULL);
-#endif	
+#endif
 	new_phase(PHASE_NETWORK);
     }
 }
@@ -1144,7 +1144,7 @@ check_maxoctets(arg)
 
     update_link_stats(ifunit);
     link_stats_valid=0;
-    
+
     switch(maxoctets_dir) {
 	case PPP_OCTETS_DIRECTION_IN:
 	    used = link_stats.bytes_in;

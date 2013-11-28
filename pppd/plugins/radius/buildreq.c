@@ -36,7 +36,7 @@ int rc_get_nas_id(VALUE_PAIR **sendpairs)
 			return (ERROR_RC);
 
 		return (OK_RC);
-	  
+
 	} else {
 		/*
 		 * Fill in NAS-IP-Address
@@ -96,6 +96,8 @@ unsigned char rc_get_seqnbr(void)
 	int tries = 1;
 	int seq_nbr, pos;
 	char *seqfile = rc_conf_str("seqfile");
+	struct stat st;
+        int err;
 
 	if ((sf = fopen(seqfile, "a+")) == NULL)
 	{
@@ -135,7 +137,10 @@ unsigned char rc_get_seqnbr(void)
 	}
 
 	rewind(sf);
-	ftruncate(fileno(sf),0);
+	err = ftruncate(fileno(sf),0);
+        if(err != 0) {
+          error("failed to truncate sequence file");
+        }
 	fprintf(sf,"%d\n", (seq_nbr+1) & UCHAR_MAX);
 
 	fflush(sf); /* fflush because a process may read it between the do_unlock and fclose */

@@ -755,6 +755,7 @@ detach()
     int pid;
     char numbuf[16];
     int pipefd[2];
+    int err;
 
     if (detached)
 	return;
@@ -775,7 +776,11 @@ detach()
 	exit(0);		/* parent dies */
     }
     setsid();
-    chdir("/");
+    err = chdir("/");
+    if(err != 0) {
+        error("could not switch to root directory");
+        exit(1);
+    }
     dup2(fd_devnull, 0);
     dup2(fd_devnull, 1);
     dup2(fd_devnull, 2);
@@ -1167,11 +1172,17 @@ void
 die(status)
     int status;
 {
+    sigset_t blocked, saved;
     if (!doing_multilink || multilink_master)
 	print_link_stats();
     cleanup();
     notify(exitnotify, status);
+
+    sigemptyset(&blocked);  sigaddset(&blocked, SIGTERM);
+    sigprocmask(SIG_BLOCK, &blocked, &saved);
+
     syslog(LOG_INFO, "Exit.");
+    sigprocmask(SIG_UNBLOCK, &saved, NULL);
     exit(status);
 }
 
@@ -1821,7 +1832,10 @@ run_program(prog, args, must_exist, done, arg, wait)
     /* Leave the current location */
     (void) setsid();	/* No controlling tty. */
     (void) umask (S_IRWXG|S_IRWXO);
-    (void) chdir ("/");	/* no current directory. */
+
+    if(chdir("/") != 0) {
+        _exit(99);
+    }
     setuid(0);		/* set real UID = root */
     setgid(getegid());
 

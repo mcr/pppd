@@ -2565,6 +2565,7 @@ get_pty(master_fdp, slave_fdp, slave_name, uid)
     int i, mfd, sfd = -1;
     char pty_name[16];
     struct termios tios;
+    int err;
 
 #ifdef TIOCGPTN
     /*
@@ -2597,9 +2598,8 @@ get_pty(master_fdp, slave_fdp, slave_name, uid)
 		pty_name[5] = 't';
 		sfd = open(pty_name, O_RDWR | O_NOCTTY, 0);
 		if (sfd >= 0) {
-		    fchown(sfd, uid, -1);
-		    fchmod(sfd, S_IRUSR | S_IWUSR);
-		    break;
+                    err = fchown(sfd, uid, -1) != 0 || fchmod(sfd, S_IRUSR | S_IWUSR) != 0;
+                    if(!err) break;
 		}
 		close(mfd);
 	    }
