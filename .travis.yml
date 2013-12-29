@@ -1,3 +1,7 @@
+language: c
+compiler:
+  - gcc
+
 before_install:
   - "sudo apt-get install build-essential linux-headers-generic libpam0g-dev"
 
