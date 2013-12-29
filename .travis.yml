@@ -1,5 +1,5 @@
 before_install:
-  - "sudo apt-get install build-essential linux-headers-generic"
+  - "sudo apt-get install build-essential linux-headers-generic libpam0g-dev"
 
 script: "contrib/build-all-options.sh"
 
